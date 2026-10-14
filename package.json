@@ -1,0 +1,9 @@
+{
+  "name": "caulong-calendar-checkin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/utils.test.mjs",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-calendar-checkin \"node --test tests/firestore.rules.test.mjs\""
+  }
+}
