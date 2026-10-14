@@ -41,7 +41,7 @@ npx firebase login
 npx firebase deploy --only firestore:rules --project cau-long-aecdc
 ```
 
-Chưa có tài khoản Firebase CLI được cấp quyền trong môi trường thực hiện; Rules trong repo đã kiểm thử bằng emulator nhưng chưa được publish vào project thật.
+Kiểm tra chỉ đọc ngày 14/10/2026 với Firebase thật trả về `NOT_FOUND`: project `cau-long-aecdc` **chưa có database `(default)`**. Cần thực hiện bước tạo database và Publish Rules ở trên trước khi dùng check-in. Chưa có tài khoản Firebase CLI được cấp quyền trong môi trường thực hiện; Rules đã kiểm thử bằng emulator nhưng chưa được publish vào project thật.
 
 ## Thành viên và avatar
 
@@ -91,7 +91,7 @@ Mọi đường dẫn nội bộ đều tương đối, hỗ trợ `/YOUR_REPO/`
 
 Repo đích do người dùng cung cấp: [ngoclieu1996vn/caulong](https://github.com/ngoclieu1996vn/caulong). Nếu `origin` đã có URL này, bỏ qua lệnh `git remote add` và chỉ push.
 
-**Chưa xuất bản GitHub Pages:** Git hiện chưa có thông tin đăng nhập được cấp quyền truy cập repo. Đã đề xuất tích hợp GitHub nhưng chưa xác nhận kết nối. Không có URL public được xác minh để bàn giao ở thời điểm viết hướng dẫn.
+Đã push mã lên `main`, chuyển repo sang public theo xác nhận của người dùng và bật GitHub Pages với source **main / (root)**. URL Pages do GitHub trả về: **https://ngoclieu1996vn.github.io/caulong/**. Trạng thái build hiện tại xem trong tab Actions hoặc Settings → Pages của repo. Không cần cài thêm tích hợp GitHub để dùng site.
 
 ## Kiểm thử phát triển
 
@@ -124,7 +124,7 @@ Kết quả đã chạy ngày 14/10/2026:
 - **9/9** Chromium tests: tháng và avatar/+N, mobile 320px/360px, chọn thẻ không ghi, check-in tường minh, khách/reload, realtime hai tab, CDN failure, offline/reconnect, service concurrent, keyboard/history, lỗi Rules không bị báo thành công và giữ emulator trên mọi liên kết về lịch.
 - Điều hướng history đã kiểm tra realtime sau khi quay lại. Chưa xác nhận riêng trình duyệt thực sự dùng BFCache (`pageshow.persisted`) hoặc đo được chính xác số subscription; mã có xử lý hủy/khôi phục tương ứng.
 - Giao diện đã xem bằng screenshot desktop 1280px và mobile 360px. iPhone Safari và Android thiết bị thật chưa được kiểm thử.
-- Không ghi test vào Firebase production; chưa xác minh end-to-end trên Firebase thật hoặc deployment GitHub Pages.
+- Không ghi test vào Firebase production; chưa xác minh check-in end-to-end trên Firebase thật vì chưa có database. Hosting và dữ liệu Firestore là hai bước thiết lập riêng.
 
 Checklist bổ sung ở [`tests/browser-checklist.md`](./tests/browser-checklist.md). Package npm chỉ là công cụ test; site tải SDK browser qua CDN, không ship `node_modules`.
 

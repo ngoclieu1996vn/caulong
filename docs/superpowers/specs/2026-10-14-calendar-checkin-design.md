@@ -1,6 +1,6 @@
 # Đặc tả Calendar Check-in Cầu lông
 
-Ngày: 14/10/2026. Trạng thái: chờ người dùng duyệt đặc tả.
+Ngày: 14/10/2026. Trạng thái: người dùng đã duyệt đặc tả và kế hoạch triển khai trong hội thoại.
 
 ## 1. Mục tiêu và phạm vi đã duyệt
 
