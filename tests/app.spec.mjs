@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { MEMBERS } from '../js/members.js';
 
 test.beforeAll(async () => {
   if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('Browser tests require the local Firestore Emulator.');
@@ -8,7 +9,7 @@ test.beforeAll(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async context => {
     const db = context.firestore();
-    for (const [index, name] of ['Bảo Long', 'Anh Nam', 'Lan Anh', 'Khách thử nghiệm'].entries()) {
+    for (const [index, name] of [...MEMBERS.slice(0, 3).map(member => member.name), 'Khách thử nghiệm'].entries()) {
       await setDoc(doc(db, 'checkins', `fixture-${index}`), {
         date: '2026-10-14', memberId: index < 3 ? `member_0${index + 1}` : null,
         name, type: index < 3 ? 'member' : 'guest', checkedInAt: Timestamp.fromMillis(1791975600000 + index * 1000),
@@ -45,7 +46,7 @@ test('calendar fits a narrow phone and opens the chosen date', async ({ page }) 
 
 test('member selection never writes, explicit check-in syncs to a second tab, guests persist after reload', async ({ page, context }) => {
   await page.goto('detail.html?date=2026-10-15&emulator=1');
-  await expect(page.locator('.member-card')).toHaveCount(5);
+  await expect(page.locator('.member-card')).toHaveCount(MEMBERS.length);
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   const second = await context.newPage();
   await second.goto('detail.html?date=2026-10-15&emulator=1');

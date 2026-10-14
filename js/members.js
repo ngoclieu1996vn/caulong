@@ -1,4 +1,4 @@
-// Khi đổi ID hoặc tên, cập nhật danh sách tương ứng trong firestore.rules.
+// Chỉnh thành viên tại đây; Firestore Rules không kiểm tra tên hoặc ID.
 export const MEMBERS = [
   {
     id: "member_01",

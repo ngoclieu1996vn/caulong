@@ -126,6 +126,8 @@ test('closing after a realtime rerender restores focus to the replacement avatar
     await page.evaluate(() => window.testRefresh());
     await page.keyboard.press('Escape');
     await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    // The dialog becomes hidden before its queued close event restores focus.
+    await page.waitForFunction(() => document.activeElement === document.querySelector('#attendee-list .avatar-trigger'));
     assert.equal(await avatar.evaluate(node => document.activeElement === node), true);
   } finally { await page.close(); }
 });

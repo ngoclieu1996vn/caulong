@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc, getDoc, deleteDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { MEMBERS } from '../js/members.js';
 
 let env;
 before(async () => {
@@ -13,7 +14,7 @@ before(async () => {
 beforeEach(() => env.clearFirestore());
 after(() => env?.cleanup());
 const database = () => env.unauthenticatedContext().firestore();
-const member = (overrides = {}) => ({ date: '2026-10-14', memberId: 'member_01', name: 'Bảo Long', type: 'member', checkedInAt: serverTimestamp(), ...overrides });
+const member = (overrides = {}) => ({ date: '2026-10-14', memberId: MEMBERS[0].id, name: MEMBERS[0].name, type: 'member', checkedInAt: serverTimestamp(), ...overrides });
 const guest = (overrides = {}) => ({ date: '2026-10-14', memberId: null, name: 'Nguyễn Văn A', type: 'guest', checkedInAt: serverTimestamp(), ...overrides });
 
 test('anonymous users can create and read a valid member check-in', async () => {
@@ -22,31 +23,43 @@ test('anonymous users can create and read a valid member check-in', async () => 
   const result = await assertSucceeds(getDoc(ref));
   assert.ok(result.data().checkedInAt instanceof Timestamp);
 });
+
+test('every currently configured member can check in with the exact configured name and ID', async () => {
+  for (const person of MEMBERS) {
+    const ref = doc(database(), `checkins/2026-10-14_${person.id}`);
+    await assertSucceeds(setDoc(ref, member({ memberId: person.id, name: person.name })));
+    assert.equal((await getDoc(ref)).data().name, person.name);
+  }
+});
+
+test('member names do not need a matching name map in Firestore Rules', async () => {
+  await assertSucceeds(setDoc(doc(database(), 'checkins/2026-10-14_member_01'), member({ name: 'Tên mới tùy ý' })));
+});
 test('valid Vietnamese, decomposed Unicode and punctuated guest names are accepted', async () => {
   for (const [i, name] of ['Nguyễn Văn A', 'Bảo Long'.normalize('NFD'), "Anne-Marie O'Neil", 'A'.repeat(60)].entries()) {
     await assertSucceeds(setDoc(doc(database(), `checkins/guest${i}`), guest({ name })));
   }
 });
-test('member payload cannot use another ID, another name or wrong document ID', async () => {
-  for (const payload of [member({ memberId: 'member_06' }), member({ name: 'Giả tên' }), member({ memberId: null }), member({ type: 'admin' })]) {
-    await assertFails(setDoc(doc(database(), 'checkins/2026-10-14_member_01'), payload));
+test('Rules do not validate member IDs, names, type or document ID format', async () => {
+  for (const [index, payload] of [member({ memberId: 'member_07' }), member({ name: 'Tên khác' }), member({ memberId: null }), member({ type: 'custom' })].entries()) {
+    await assertSucceeds(setDoc(doc(database(), `checkins/free-member-${index}`), payload));
   }
-  await assertFails(setDoc(doc(database(), 'checkins/wrong-id'), member()));
+  await assertSucceeds(setDoc(doc(database(), 'checkins/free-document-id'), member()));
 });
-test('strict schema rejects extra and missing fields and invalid dates or timestamps', async () => {
+test('Rules accept missing or extra fields and do not validate dates or timestamps', async () => {
   const missingName = guest(); delete missingName.name;
-  for (const data of [guest({ extra: true }), missingName, guest({ date: '2026-13-01' }), guest({ date: '2026-10-32' }), guest({ date: '0000-01-01' }), guest({ date: 20261014 }), guest({ checkedInAt: Timestamp.fromMillis(0) }), guest({ checkedInAt: null })]) {
-    await assertFails(setDoc(doc(database(), 'checkins/guest-test'), data));
+  for (const [index, data] of [{}, guest({ extra: true }), missingName, guest({ date: '2026-13-01' }), guest({ date: '2026-10-32' }), guest({ date: '0000-01-01' }), guest({ date: 20261014 }), guest({ checkedInAt: Timestamp.fromMillis(0) }), guest({ checkedInAt: null })].entries()) {
+    await assertSucceeds(setDoc(doc(database(), `checkins/free-payload-${index}`), data));
   }
 });
-test('invalid guest names cannot bypass the client validator', async () => {
-  for (const name of ['', 'A', '  An', 'An ', 'An  Nam', '---', 'A'.repeat(61), '<script>', 'An\nNam', 'An\u0000Nam', '🙂 An']) {
-    await assertFails(setDoc(doc(database(), 'checkins/guest-test'), guest({ name })));
+test('guest name validation is not enforced by Firestore Rules', async () => {
+  for (const [index, name] of ['', 'A', '  An', 'An ', 'An  Nam', '---', 'A'.repeat(61), '<script>', 'An\nNam', 'An\u0000Nam', '🙂 An'].entries()) {
+    await assertSucceeds(setDoc(doc(database(), `checkins/free-name-${index}`), guest({ name })));
   }
 });
-test('guests cannot reserve member IDs or claim a memberId', async () => {
-  await assertFails(setDoc(doc(database(), 'checkins/2026-10-14_member_01'), guest()));
-  await assertFails(setDoc(doc(database(), 'checkins/guest-test'), guest({ memberId: 'member_01' })));
+test('Rules do not check guest memberId or document ID', async () => {
+  await assertSucceeds(setDoc(doc(database(), 'checkins/2026-10-14_member_01'), guest()));
+  await assertSucceeds(setDoc(doc(database(), 'checkins/guest-test'), guest({ memberId: 'member_01' })));
 });
 test('updates, repeated setDoc and deletes are forbidden', async () => {
   const ref = doc(database(), 'checkins/2026-10-14_member_01');
