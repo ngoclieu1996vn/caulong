@@ -25,6 +25,9 @@ const base = 'http://127.0.0.1:4173/repository-name/';
 async function openPage(path, mobile = false) {
   const page = await browser.newPage({ viewport: mobile ? { width: 320, height: 700 } : { width: 1100, height: 850 }, hasTouch: mobile, isMobile: mobile });
   page.setDefaultTimeout(5000);
+  // Keep all Firebase boundaries local, including the optional daily panels.
+  await page.route('**/js/billing-service.js', route=>route.fulfill({contentType:'text/javascript',body:`export const watchBilling=(date,cb)=>{queueMicrotask(()=>cb({data:null,fromCache:false}));return ()=>{};};`}));
+  await page.route('**/js/team-games-service.js', route=>route.fulfill({contentType:'text/javascript',body:`export const watchTeamGame=(date,cb)=>{queueMicrotask(()=>cb({data:null,fromCache:false}));return ()=>{};};`}));
   // Replace only the external data boundary; render the real application and avatars.
   await page.route('**/js/checkin-service.js', route => route.fulfill({
     contentType: 'text/javascript',

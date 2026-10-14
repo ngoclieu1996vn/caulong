@@ -17,6 +17,22 @@ const database = () => env.unauthenticatedContext().firestore();
 const member = (overrides = {}) => ({ date: '2026-10-14', memberId: MEMBERS[0].id, name: MEMBERS[0].name, type: 'member', checkedInAt: serverTimestamp(), ...overrides });
 const guest = (overrides = {}) => ({ date: '2026-10-14', memberId: null, name: 'Nguyễn Văn A', type: 'guest', checkedInAt: serverTimestamp(), ...overrides });
 
+test('billing allows anonymous read/create/update arbitrary data but denies deletion', async () => {
+  const ref=doc(database(),'billing/2026-10-14');
+  await assertSucceeds(setDoc(ref,{}));
+  await assertSucceeds(updateDoc(ref,{anything:'accepted'}));
+  await assertSucceeds(getDoc(ref));
+  await assertFails(deleteDoc(ref));
+});
+
+test('teamGames allows anonymous read/create/update arbitrary data but denies deletion', async () => {
+  const ref=doc(database(),'teamGames/2026-10-14');
+  await assertSucceeds(setDoc(ref,{}));
+  await assertSucceeds(updateDoc(ref,{anything:'accepted'}));
+  await assertSucceeds(getDoc(ref));
+  await assertFails(deleteDoc(ref));
+});
+
 test('anonymous users can create and read a valid member check-in', async () => {
   const ref = doc(database(), 'checkins/2026-10-14_member_01');
   await assertSucceeds(setDoc(ref, member()));

@@ -53,7 +53,7 @@ Sửa các đối tượng trong [`js/members.js`](./js/members.js): `id`, `name
 
 ## Cách lưu dữ liệu
 
-Collection `checkins`, đúng các field: `date`, `memberId`, `name`, `type`, `checkedInAt`. Ngày dùng dạng `YYYY-MM-DD`; ngày hiện tại và thời gian hiển thị theo **Asia/Ho_Chi_Minh**.
+Collection `checkins`, các field ứng dụng ghi: `date`, `memberId`, `name`, `type`, `gender`, `checkedInAt`. Ngày dùng dạng `YYYY-MM-DD`; ngày hiện tại và thời gian hiển thị theo **Asia/Ho_Chi_Minh**. Khách mới phải chọn Nam/Nữ; dữ liệu cũ thiếu giới tính vẫn được đọc.
 
 - Thành viên: ID document `${date}_${memberId}`, ví dụ `2026-10-14_member_01`; Rules chặn update nên không ghi đè check-in đã tồn tại kể cả hai thiết bị gửi đồng thời. Sau khi hủy, document được xóa và thành viên có thể check-in lại.
 - Khách: ứng dụng tạo ID tự động, `memberId: null`, `type: 'guest'`. Khách khác nhau được phép trùng tên. Rules không kiểm tra định dạng ID hoặc loại document.
@@ -79,7 +79,43 @@ Kiểm tra ngày và tên nằm ở JavaScript của ứng dụng. Firestore Rul
 
 Ai mở website cũng có thể đọc danh sách và check-in thay thành viên. Không thể chứng minh người bấm chính là chủ avatar, không chống spam khách tuyệt đối. Tối ưu query theo tháng không phải hạn chế quyền đọc; người biết cấu hình có thể đọc collection được public read. Không lưu thông tin nhạy cảm trong danh sách.
 
-Rules chặn sửa và truy cập collection khác, cho phép đọc/thêm mới/xóa `checkins` mà không kiểm tra cấu trúc, tên/ID hoặc timestamp. Rules không giới hạn tổng số lượt ghi của một người. Nếu cần mức bảo vệ cao hơn, xem xét Firebase App Check, xác thực người dùng và cơ chế rate limiting riêng. Các nâng cấp này chưa được thêm vào ứng dụng.
+Rules cho phép đọc/thêm mới/xóa `checkins`, chặn sửa check-in; cho phép đọc/tạo/sửa `billing` và `teamGames`, chặn xóa hai collection này. Các collection khác bị chặn. Không kiểm tra field, tên/ID hoặc timestamp trong Rules. Ai mở website cũng có thể sửa chi phí và kết quả trò chơi. Rules không giới hạn tổng số lượt ghi của một người.
+
+## Tính tiền theo ngày
+
+Trên trang chi tiết, bấm **Tính tiền**. Tiền sân mặc định 220.000đ; có sẵn hai dòng cầu 27.000đ và 25.000đ với số lượng 0. Mỗi loại cầu có nhãn, số lượng, đơn giá và thành tiền; **+ Thêm loại cầu** để nhập thêm giá khác. Trà có số bình (mặc định 0) và giá/bình. Có số lượng thì cần nhập giá, cho phép 0đ. Các ô tiền dùng đơn vị đồng nguyên, không nhập `220k`.
+
+Mỗi người check-in có avatar và giờ mặc định 2h; nút −/+ thay đổi 0,5h, từ 0 đến 24h. Bấm avatar vẫn mở ảnh lớn. Người vừa check-in lại sau khi hủy có phiên bản mới và giờ trở về 2h.
+
+`Tiền/người = tiền sân × giờ/người ÷ tổng giờ + (tiền cầu + trà) ÷ số người`
+
+Tiền sân và phần cầu/trà được chia riêng bằng số nguyên; các đồng dư phân theo phần dư giảm dần, cùng phần dư dùng ID check-in. Tổng tiền mọi người luôn bằng tổng chi. Người 0h vẫn chia đều cầu/trà. Phải có ít nhất một người để tính; tổng giờ phải lớn hơn 0 nếu tiền sân lớn hơn 0. Ví dụ tổng 319.000đ với giờ 2,2,1,1 cho các khoản 98.083đ, 98.083đ, 61.417đ, 61.417đ.
+
+- **Lưu** lưu bản nháp, chưa có số tiền phải trả.
+- **Lưu & tính tiền** lưu cả kết quả; danh sách check-in hiện tiền và giờ từng người sau xác nhận server.
+- Sửa input/giờ ẩn tiền cũ và báo chưa lưu. Thêm/hủy/check-in lại báo **Cần tính lại**. Mở lại ngày có chi phí đã lưu sẽ tự hiển thị phần chi phí.
+- Nếu thiết bị khác sửa khi bạn đang nhập, form giữ nguyên; dùng **Tải bản mới** để nhận dữ liệu server. Lưu dùng revision transaction, từ chối ghi đè bản mới hơn.
+
+## Vòng quay và chia đội
+
+Hai nút **Vòng quay** và **Chia đội ngẫu nhiên** nằm cạnh danh sách check-in. Vòng quay chọn một người mỗi lượt, không lặp; hai người liên tiếp thành một đội. Người lẻ thành đội riêng. Nút Quay khóa khi có animation; chế độ giảm chuyển động vẫn chọn đúng một người.
+
+Chia đội ngẫu nhiên ghép nam–nữ tối đa, sau đó ghép người dư cùng giới, người lẻ thành đội riêng. Khách cũ thiếu giới tính được chọn ngay trong phần trò chơi; lựa chọn lưu cùng kết quả, không sửa check-in cũ. Vòng quay không yêu cầu giới tính.
+
+Khi đủ đội, ứng dụng xáo đội để gợi ý cặp đấu. Đội dư ghi **Chờ lượt**. Kết quả hoàn chỉnh tự lưu theo ngày; lượt quay đang dở chỉ tồn tại trên thiết bị hiện tại. **Bắt đầu lại** mở lượt mới, chỉ thay kết quả server khi lượt mới hoàn tất và lưu thành công. Danh sách đổi lúc animation sẽ hủy lượt đó; kết quả đã lưu cũng được đánh dấu cần chia lại khi danh sách thay đổi.
+
+Lỗi lưu giữ kết quả local để **Thử lưu kết quả**. Hai phần chi phí/trò chơi lưu độc lập. Khi offline, không báo đã lưu; kết nối lại rồi thử lưu. Nếu Rules mới chưa được Publish, check-in và hủy vẫn hoạt động theo quyền đã có.
+
+## Dữ liệu chi phí và trò chơi — cần Publish Rules mới
+
+**Chép toàn bộ [`firestore.rules`](./firestore.rules) vào Firebase Console → Firestore Database → Rules và bấm Publish.** Chỉ sửa website chưa cấp quyền cho hai collection mới. Việc Publish do người dùng thực hiện.
+
+| Document | Nội dung |
+| --- | --- |
+| `billing/{YYYY-MM-DD}` | `schemaVersion`, `input` (sân, cầu, trà, giờ), `status` draft/calculated, snapshot `participants`, `sourceFingerprint`, `result`, `revision`, `updatedAt` |
+| `teamGames/{YYYY-MM-DD}` | `schemaVersion`, `mode`, snapshot `participants`, `sourceFingerprint`, `genderOverrides`, `drawOrder`, `teams`, `matchups`, `waitingTeamIds`, `revision`, `updatedAt` |
+
+Mỗi ngày giữ bản chi phí và kết quả trò chơi mới nhất. Định danh dùng ID check-in + timestamp đầy đủ, không dùng tên; khách trùng tên được tính/chia đội riêng. `updatedAt` do server ghi; transaction tăng revision và phát hiện xung đột. Trước lưu, ứng dụng đọc danh sách mới từ server; nếu thay đổi đồng thời sau lúc gửi, listener đánh dấu kết quả cũ. Trang chi tiết thêm hai document listener, Calendar vẫn chỉ đọc checkins.
 
 ## Deploy GitHub Pages
 
@@ -127,12 +163,14 @@ npx firebase emulators:start --only firestore --project demo-calendar-checkin
 
 Kết quả đã chạy ngày 14/10/2026:
 
-- **7/7** unit tests: ngày Việt Nam, ngày nhuận, ngày sai, khoảng tháng, lịch thứ Hai, tên khách, giờ hiển thị.
+**71/71 kiểm thử đã qua:** 19 unit, 14 Firestore Rules, 33 Chromium và 5 kiểm thử avatar; kiểm tra syntax tất cả module JS cũng đã qua. Có một lượt review độc lập và kiểm thử hồi quy cho các lỗi tìm được.
+
+- Unit tests: ngày Việt Nam, ngày nhuận, ngày sai, khoảng tháng, lịch thứ Hai, tên khách, giờ hiển thị; định danh theo phiên bản, chia tiền nguyên đồng, giờ 0/khác nhau, nhiều loại cầu, ghép đội và góc dừng vòng quay.
 - Firestore Emulator tests kiểm tra đọc/thêm mới không phụ thuộc tên, ID hoặc cấu trúc dữ liệu; cho phép xóa và check-in lại, giữ chặn ghi trùng/đồng thời, update và collection khác.
-- **13/13** Chromium tests: lịch và check-in, realtime, offline, điều hướng, lỗi quyền, hủy thành viên/khách có xác nhận, Giữ lại, đồng bộ hủy sang tab/lịch, check-in lại, hủy khi offline, lỗi quyền xóa và giữ focus xác nhận qua cập nhật realtime.
+- Chromium tests: lịch/check-in/hủy, avatar, form chi phí và giờ, draft/calculated, refresh/two-tab/revision, giới tính khách, vòng quay/chia đội, lỗi quyền/offline, thay đổi danh sách, mobile 320px, reduced motion và bấm đúp/giữ Enter.
 - Điều hướng history đã kiểm tra realtime sau khi quay lại. Chưa xác nhận riêng trình duyệt thực sự dùng BFCache (`pageshow.persisted`) hoặc đo được chính xác số subscription; mã có xử lý hủy/khôi phục tương ứng.
 - Giao diện đã xem bằng screenshot desktop 1280px và mobile 360px. iPhone Safari và Android thiết bị thật chưa được kiểm thử.
-- Không ghi test vào Firebase production; chưa xác minh check-in end-to-end trên Firebase thật vì chưa có database. Hosting và dữ liệu Firestore là hai bước thiết lập riêng.
+- Không ghi test vào Firebase production; các tính năng mới được kiểm thử với Firestore Emulator. Hosting và việc Publish Rules là hai bước riêng do người dùng thực hiện.
 
 Checklist bổ sung ở [`tests/browser-checklist.md`](./tests/browser-checklist.md). Package npm chỉ là công cụ test; site tải SDK browser qua CDN, không ship `node_modules`.
 

@@ -7,6 +7,7 @@ import {
   setDoc,
   deleteDoc,
   getDocFromServer,
+  getDocsFromServer,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 import { db } from "./firebase.js";
@@ -15,6 +16,12 @@ import { isValidDateKey, normalizeGuestName } from "./utils.js";
 
 function assertDate(date) {
   if (!isValidDateKey(date)) throw new Error("Ngày check-in không hợp lệ.");
+}
+export async function readDayCheckins(date) {
+  assertDate(date);
+  const snapshot = await getDocsFromServer(query(collection(db, 'checkins'), where('date', '==', date)));
+  return snapshot.docs.filter(item => !item.metadata.hasPendingWrites && typeof item.data().checkedInAt?.toMillis === 'function')
+    .map(item => ({ ...item.data(), id: item.id }));
 }
 export function watchCheckins(filter, onData, onError) {
   const source = collection(db, "checkins");
@@ -73,6 +80,7 @@ export async function checkInMember(date, memberId) {
       date,
       memberId,
       name: member.name,
+      gender: member.gender,
       type: "member",
       checkedInAt: serverTimestamp(),
     });
@@ -97,14 +105,16 @@ export async function checkInMember(date, memberId) {
     throw error;
   }
 }
-export async function checkInGuest(date, input) {
+export async function checkInGuest(date, input, gender) {
   assertDate(date);
   const name = normalizeGuestName(input);
+  if (!['Nam','Nữ'].includes(gender)) throw new Error('Vui lòng chọn giới tính Nam hoặc Nữ.');
   const ref = doc(collection(db, "checkins"));
   await setDoc(ref, {
     date,
     memberId: null,
     name,
+    gender,
     type: "guest",
     checkedInAt: serverTimestamp(),
   });

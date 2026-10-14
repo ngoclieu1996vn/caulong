@@ -1,0 +1,80 @@
+import { test, expect } from '@playwright/test';
+import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
+import { doc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+let env;
+test.beforeAll(async()=>{
+  env=await initializeTestEnvironment({projectId:'demo-calendar-checkin',firestore:{host:'127.0.0.1',port:8080}});
+  await env.withSecurityRulesDisabled(async c=>{
+    for(const date of ['2026-12-02','2026-12-03','2026-12-04'])
+      for(const id of ['a','b','c','d']) await setDoc(doc(c.firestore(),'checkins',`${date}_${id}`),{date,name:id==='b'?'a':id,type:'guest',memberId:null,gender:'Nam',checkedInAt:Timestamp.fromMillis(1000)});
+  });
+});
+test.afterAll(()=>env?.cleanup());
+async function open(page,date='2026-12-02'){
+  await page.goto(`detail.html?date=${date}&emulator=1`);
+  await expect(page.locator('#attendee-count')).toHaveText('4');
+  await expect(page.locator('#billing-status')).not.toContainText('Đang tải');
+  if(!await page.locator('#billing-panel').isVisible()) await page.getByRole('button',{name:'Tính tiền',exact:true}).click();
+}
+test('billing defaults, editable hours, draft and calculated result survive reload',async({page})=>{
+  await open(page);
+  await expect(page.getByLabel('Tiền sân (đ)')).toHaveValue('220000');
+  await page.getByLabel('Số lượng cầu 1').fill('2');
+  await page.getByLabel('Số lượng cầu 2').fill('1');
+  await expect(page.locator('#billing-summary')).toContainText('3 quả');
+  await page.getByLabel('Số bình trà').fill('1');
+  await page.getByLabel('Giá mỗi bình (đ)').fill('20000');
+  await page.locator('.hours-card').nth(2).getByRole('button',{name:/Giảm giờ/}).click({clickCount:1});
+  await page.locator('.hours-card').nth(2).getByRole('button',{name:/Giảm giờ/}).click();
+  await page.locator('.hours-card').nth(3).getByRole('button',{name:/Giảm giờ/}).click();
+  await page.locator('.hours-card').nth(3).getByRole('button',{name:/Giảm giờ/}).click();
+  await page.getByRole('button',{name:'Lưu',exact:true}).click();
+  await expect(page.locator('#billing-status')).toContainText('Đã lưu bản nháp');
+  await expect(page.locator('.attendee-amount')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('#billing-panel')).toBeVisible();
+  await expect(page.getByLabel('Số lượng cầu 1')).toHaveValue('2');
+  await page.getByRole('button',{name:'Lưu & tính tiền'}).click();
+  await expect(page.locator('#billing-status')).toContainText('Đã tính');
+  await expect(page.locator('.attendee-amount')).toHaveCount(4);
+  expect((await page.locator('.attendee-amount').allTextContents()).map(t=>t.replace(/\D/g,''))).toEqual(['98083','98083','61417','61417']);
+  await page.reload();
+  await expect(page.locator('.attendee-amount')).toHaveCount(4);
+  await page.getByLabel('Tiền sân (đ)').fill('230000');
+  await expect(page.locator('.attendee-amount')).toHaveCount(0);
+  await expect(page.locator('#billing-status')).toContainText('chưa lưu');
+});
+test('dirty forms preserve edits across tabs and prevent stale revision overwrite',async({page,context})=>{
+  await open(page,'2026-12-03');
+  const other=await context.newPage(); await open(other,'2026-12-03');
+  await page.getByLabel('Tiền sân (đ)').fill('300000');
+  await other.getByLabel('Tiền sân (đ)').fill('240000');
+  await other.getByRole('button',{name:'Lưu',exact:true}).click();
+  await expect(other.locator('#billing-status')).toContainText('Đã lưu');
+  await expect(page.getByLabel('Tiền sân (đ)')).toHaveValue('300000');
+  await expect(page.locator('#billing-status')).toContainText('thiết bị khác');
+  await page.getByRole('button',{name:'Lưu',exact:true}).click();
+  await expect(page.locator('#billing-status')).toContainText('thiết bị khác');
+  await page.getByRole('button',{name:'Tải bản mới'}).click();
+  await expect(page.getByLabel('Tiền sân (đ)')).toHaveValue('240000');
+  await other.close();
+});
+test('roster changes invalidate bill and reset rechecked hours; mobile form fits',async({page})=>{
+  await page.setViewportSize({width:320,height:850});
+  await open(page,'2026-12-04');
+  await page.locator('.hours-card').first().getByRole('button',{name:/Giảm giờ/}).click();
+  await page.getByRole('button',{name:'Lưu & tính tiền'}).click();
+  await expect(page.locator('.attendee-amount')).toHaveCount(4);
+  await env.withSecurityRulesDisabled(c=>deleteDoc(doc(c.firestore(),'checkins','2026-12-04_a')));
+  await expect(page.locator('#billing-status')).toContainText('Cần tính lại');
+  await expect(page.locator('.attendee-amount')).toHaveCount(0);
+  await env.withSecurityRulesDisabled(c=>setDoc(doc(c.firestore(),'checkins','2026-12-04_a'),{date:'2026-12-04',name:'a',type:'guest',gender:'Nam',checkedInAt:Timestamp.fromMillis(2000)}));
+  await expect(page.locator('.hours-card')).toHaveCount(4);
+  await expect(page.locator('.hours-card[data-person-id="2026-12-04_a"] .hours-value')).toHaveText('2h');
+  await page.getByRole('button',{name:'+ Thêm loại cầu'}).click();
+  await expect(page.locator('.shuttle-row')).toHaveCount(3);
+  await page.getByRole('button',{name:'Bỏ loại cầu 3'}).click();
+  await expect(page.locator('.shuttle-row')).toHaveCount(2);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:'.playwright/billing-mobile.png',fullPage:true});
+});

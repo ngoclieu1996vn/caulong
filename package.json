@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/utils.test.mjs",
+    "test": "node --test tests/utils.test.mjs tests/participants.test.mjs tests/billing.test.mjs tests/team-games.test.mjs",
     "test:avatars": "node --test tests/avatar-preview.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore --project demo-calendar-checkin \"node --test tests/firestore.rules.test.mjs\"",
     "test:browser": "firebase emulators:exec --only firestore --project demo-calendar-checkin \"playwright test\"",

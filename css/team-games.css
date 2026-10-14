@@ -1,0 +1,31 @@
+.game-tools .button { display:flex; align-items:center; gap:9px; min-height:44px; font-size:21px; border:1px solid #d6e0d4; background:#f3f6ed; }
+.tool-caption { font-size:12px; }
+.wheel-stage { width:min(100%,340px); position:relative; margin:28px auto; aspect-ratio:1; }
+.wheel-disc { width:100%; height:100%; overflow:hidden; border-radius:50%; box-shadow:0 9px 12px #17352422; }
+.team-wheel { width:100%; height:100%; display:block; border-radius:50%; filter:drop-shadow(0 9px 8px #17352422); }
+.wheel-pointer { position:absolute; left:50%; top:-19px; transform:translateX(-50%); color:#ac5e3c; font-size:40px; text-shadow:0 2px 0 white; }
+.wheel-winner { text-align:center; color:#245c45; font-weight:700; margin:18px 0; min-height:24px; }
+.draw-order { display:flex; flex-wrap:wrap; list-style:none; gap:8px; padding:0; margin:20px 0; }
+.draw-order li { padding:7px 10px; background:#edf3e7; border-radius:7px; font-size:12px; }
+.game-genders { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:16px 0; }
+.game-gender-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; border:1px solid #e3e9df; padding:10px; border-radius:9px; font-size:12px; min-width:0; }
+.game-gender-row label { width:100%; }
+.gender-badge { color:#657c65; padding:4px 7px; background:#edf3e8; border-radius:8px; }
+.game-teams { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+.game-team { border:1px solid #d9e2d4; border-radius:13px; padding:16px; background:#fbfcf7; min-width:0; }
+.game-team h4 { display:inline; font-size:16px; color:#245c45; margin-right:9px; }
+.team-kind { display:inline-block; font-size:10px; padding:3px 6px; border-radius:5px; background:#e9efde; }
+.team-person { display:flex; align-items:center; gap:10px; font-size:13px; margin-top:14px; overflow-wrap:anywhere; }
+.game-match,.game-waiting { padding:14px; border:1px solid #d9e2d4; border-radius:10px; font-size:14px; text-align:center; }
+.game-match { background:#edf3e8; font-weight:700; color:#245c45; }
+.game-waiting,.stale-label { color:#996f3b; }
+.game-result:has(.stale-label) .game-teams { opacity:.65; }
+.shuffle-stage { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; padding:20px 0; }
+.shuffle-chip { background:#e7efde; padding:12px 16px; border-radius:30px; font-size:13px; color:#315c42; }
+.is-shuffling .shuffle-chip { animation:shuffle-chips .35s ease-in-out infinite alternate; animation-delay:calc(var(--i)*-0.07s); }
+.draw-order li,.shuffle-chip { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+.game-gender-row>span:first-child { min-width:0; overflow-wrap:anywhere; }
+.wheel-winner { overflow-wrap:anywhere; }
+@keyframes shuffle-chips { from {transform:translate(-9px,-5px) rotate(-6deg);} to {transform:translate(9px,6px) rotate(6deg);} }
+@media(prefers-reduced-motion:reduce) { .is-shuffling .shuffle-chip { animation:none; } }
+@media(max-width:540px) { .game-tools { gap:8px; } .game-tools .button { padding:10px; font-size:18px; } .tool-caption {font-size:10px;} .game-genders {grid-template-columns:1fr;} .game-teams {grid-template-columns:1fr;} }

@@ -7,6 +7,10 @@ import {
 import { MEMBERS, getMember, GUEST_AVATAR } from "./members.js";
 import { emulatorSuffix, preserveLocalCalendarLinks } from "./navigation.js";
 import { createAvatarButton } from "./avatar-preview.js";
+import { buildParticipants } from './participants.js';
+import { formatMoney } from './billing.js';
+import { createBillingController } from './billing-ui.js';
+import { createTeamGamesController } from './team-games-ui.js';
 
 preserveLocalCalendarLinks();
 
@@ -23,6 +27,22 @@ let service,
 let records = [];
 let confirmDeleteId = null;
 const cards = new Map();
+let billing,games;
+let allocations=[];
+function syncParticipants() {
+  billing?.setParticipants(buildParticipants(records),{ready});
+  games?.setParticipants(buildParticipants(records),{ready});
+}
+function renderAmounts() {
+  for(const row of document.querySelectorAll('#attendee-list .attendee')) {
+    row.querySelector('.attendee-billing')?.remove();
+    const allocation=allocations.find(a=>a.id===row.dataset.checkinId);
+    if(!allocation)continue;
+    const info=element('div','attendee-billing');
+    info.append(element('p','attendee-amount',formatMoney(allocation.amount)),element('p','attendee-hours',`${allocation.halfHours/2} giờ`));
+    row.querySelector('.attendee-info').append(info);
+  }
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -110,6 +130,7 @@ function updateCards() {
   $("#guest-submit").textContent =
     pending?.type === "guest" ? "Đang chờ xác nhận…" : "Xác nhận check-in";
   $("#guest-name").disabled = Boolean(pending);
+  $('#guest-gender').disabled=Boolean(pending);
   $("#guest-toggle").disabled = Boolean(pending);
   for (const button of document.querySelectorAll(".cancel-checkin, .delete-confirm, .delete-keep")) {
     button.disabled = !ready || Boolean(pending);
@@ -207,12 +228,14 @@ function renderAttendees() {
     list.append(row);
   }
   restoreActionFocus();
+  renderAmounts();
 }
 function subscribe() {
   unsubscribe?.();
   unsubscribe = undefined;
   const current = ++generation;
   ready = false;
+  syncParticipants();
   updateCards();
   status("Đang tải danh sách check-in…");
   if (!service || suspended) return;
@@ -233,6 +256,7 @@ function subscribe() {
       if (confirmDeleteId && !records.some(item => item.id === confirmDeleteId)) confirmDeleteId = null;
       // Cached empty data alone must never enable an initial check-in.
       if (!result.fromCache) ready = true;
+      syncParticipants();
       renderAttendees();
       updateCards();
       status(
@@ -244,6 +268,7 @@ function subscribe() {
     (error) => {
       if (current !== generation || suspended) return;
       ready = false;
+      syncParticipants();
       updateCards();
       status(service.checkinErrorMessage(error), true);
       if (!records.length)
@@ -280,6 +305,7 @@ async function submitCancellation(record) {
   try {
     await service.cancelCheckin(record.id);
     records = records.filter(item => item.id !== record.id);
+    syncParticipants();
     confirmDeleteId = null;
     if (selectedId === record.memberId) selectedId = null;
     notice(`Đã hủy check-in của ${record.name}.`);
@@ -326,6 +352,7 @@ async function submitGuest(event) {
   if (!ready || pending) return;
   $("#guest-error").textContent = "";
   $("#guest-name").removeAttribute("aria-invalid");
+  $('#guest-gender').removeAttribute('aria-invalid');
   let name;
   try {
     name = normalizeGuestName($("#guest-name").value);
@@ -335,12 +362,18 @@ async function submitGuest(event) {
     $("#guest-name").focus();
     return;
   }
+  const gender=$('#guest-gender').value;
+  if(!['Nam','Nữ'].includes(gender)) {
+    $('#guest-error').textContent='Vui lòng chọn giới tính Nam hoặc Nữ.';
+    $('#guest-gender').setAttribute('aria-invalid','true');$('#guest-gender').focus();return;
+  }
   pending = { type: "guest" };
   updateCards();
   pendingNotice();
   try {
-    await service.checkInGuest(date, name);
+    await service.checkInGuest(date, name, gender);
     $("#guest-name").value = "";
+    $('#guest-gender').value='';
     notice(`Check-in thành công. Chào mừng ${name} đến với buổi cầu!`);
   } catch (error) {
     notice(service.checkinErrorMessage(error), true);
@@ -363,6 +396,9 @@ async function boot() {
   $("#back-link").href =
     `./index.html?month=${date.slice(0, 7)}${emulatorSuffix}`;
   buildCards();
+  billing=createBillingController({date,root:$('#billing-root'),onAllocationsChange:result=>{allocations=result.allocations;renderAmounts();}});
+  billing.start();
+  games=createTeamGamesController({date,root:$('#games-root')});games.start();
   $("#guest-toggle").addEventListener("click", () => {
     const expanded = $("#guest-form").hidden;
     $("#guest-form").hidden = !expanded;
@@ -375,6 +411,8 @@ async function boot() {
   );
   window.addEventListener("pagehide", () => {
     suspended = true;
+    billing.stop();
+    games.stop();
     ++generation;
     unsubscribe?.();
     unsubscribe = undefined;
@@ -382,6 +420,8 @@ async function boot() {
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) {
       suspended = false;
+      billing.start();
+      games.start();
       subscribe();
     }
   });

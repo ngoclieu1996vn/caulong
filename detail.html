@@ -7,6 +7,8 @@
     <title>Check-in theo ngày · Cầu lông</title>
     <link rel="icon" href="./assets/avatars/guest.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/billing.css" />
+    <link rel="stylesheet" href="./css/team-games.css" />
   </head>
   <body>
     <header class="site-header">
@@ -104,6 +106,12 @@
                 Xác nhận check-in
               </button>
             </div>
+            <label for="guest-gender">Giới tính</label>
+            <select id="guest-gender" class="gender-select" required aria-describedby="guest-error">
+              <option value="">Chọn giới tính</option>
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
+            </select>
             <p class="input-note" id="guest-note">
               Từ 2–60 ký tự. Không cần đăng ký tài khoản.
             </p>
@@ -117,6 +125,7 @@
           aria-live="polite"
           hidden
         ></div>
+        <div id="billing-root"></div>
         <section aria-labelledby="attendees-title">
           <div class="section-heading">
             <h2 id="attendees-title">
@@ -125,6 +134,7 @@
             </h2>
             <p>Thời gian check-in · giờ Việt Nam</p>
           </div>
+          <div id="games-root"></div>
           <ul id="attendee-list" class="attendee-list">
             <li class="empty-state">Đang tải danh sách check-in…</li>
           </ul>

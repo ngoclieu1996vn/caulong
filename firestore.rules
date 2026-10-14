@@ -5,6 +5,14 @@ service cloud.firestore {
       allow read, create, delete: if true;
       allow update: if false;
     }
+    match /billing/{date} {
+      allow read, create, update: if true;
+      allow delete: if false;
+    }
+    match /teamGames/{date} {
+      allow read, create, update: if true;
+      allow delete: if false;
+    }
     match /{document=**} {
       allow read, write: if false;
     }

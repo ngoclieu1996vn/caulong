@@ -64,6 +64,7 @@ test('member selection never writes, explicit check-in syncs to a second tab, gu
   await expect(page.locator('#guest-error')).not.toBeEmpty();
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await page.getByLabel('Họ và tên').fill('  Nguyễn   Khách  ');
+  await page.getByLabel('Giới tính', {exact:true}).selectOption('Nam');
   await page.getByRole('button', { name: 'Xác nhận check-in' }).click();
   await expect(page.locator('#attendee-count')).toHaveText('2');
   await expect(page.getByLabel('Họ và tên')).toHaveValue('');
@@ -90,6 +91,7 @@ test('offline guest submission waits for the server and reconnects with one docu
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   await page.getByRole('button', { name: 'Bạn là khách vãng lai' }).click();
   await page.getByLabel('Họ và tên').fill('Khách Offline');
+  await page.getByLabel('Giới tính', {exact:true}).selectOption('Nam');
   await context.setOffline(true);
   await page.getByRole('button', { name: 'Xác nhận check-in' }).click();
   await expect(page.locator('#guest-submit')).toBeDisabled();
@@ -132,7 +134,7 @@ test('phone layout, keyboard selection and history navigation keep the daily lis
   const second = await context.newPage();
   await second.goto('detail.html?date=2026-10-18&emulator=1');
   await expect(second.locator('#data-status')).toContainText('Đã đồng bộ');
-  await second.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-18', 'Khách Lịch Sử'));
+  await second.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-18', 'Khách Lịch Sử', 'Nam'));
   await expect(page.locator('#attendee-list')).toContainText('Khách Lịch Sử');
   await page.screenshot({ path: '.playwright/detail-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 1280, height: 1000 });
@@ -213,6 +215,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await page.getByRole('button', { name: 'Bạn là khách vãng lai' }).click();
   await page.getByLabel('Họ và tên').fill('Khách hủy nhầm');
+  await page.getByLabel('Giới tính', {exact:true}).selectOption('Nữ');
   await page.getByRole('button', { name: 'Xác nhận check-in' }).click();
   await expect(page.locator('#attendee-count')).toHaveText('2');
   const guest = page.locator('.attendee').filter({ hasText: 'Khách hủy nhầm' });
@@ -251,7 +254,7 @@ test('rejected cancellation preserves the record and allows retry', async ({ pag
   try {
     await page.goto('detail.html?date=2026-10-22&emulator=1');
     await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
-    await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-22', 'Khách giữ lại'));
+    await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-22', 'Khách giữ lại', 'Nam'));
     await expect(page.locator('#attendee-count')).toHaveText('1');
     await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
     await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
@@ -276,7 +279,7 @@ test('inline confirmation keeps its focused action through realtime changes and 
   const second = await context.newPage();
   await second.goto('detail.html?date=2026-10-23&emulator=1');
   await expect(second.locator('#data-status')).toContainText('Đã đồng bộ');
-  await second.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-23', 'Khách cập nhật'));
+  await second.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-23', 'Khách cập nhật', 'Nữ'));
   await expect(page.locator('#attendee-count')).toHaveText('2');
   await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toBeFocused();
   await second.evaluate(async () => (await import('./js/checkin-service.js')).cancelCheckin('2026-10-23_member_03'));
