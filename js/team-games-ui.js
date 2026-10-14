@@ -150,7 +150,8 @@ export function createTeamGamesController({date,root}) {
     output.append(el('h3',null,result?'Các đội đã ghép':'Đội đang ghép'));
     const teams=el('div','game-teams');
     const drawnTeams=result?.teams??teamsFromOrder(resolved().filter(p=>order.includes(p.id)),order);
-    for(const team of drawnTeams){
+    const displayTeams=[...drawnTeams].sort((a,b)=>Number(a.id.split('-').at(-1))-Number(b.id.split('-').at(-1)));
+    for(const team of displayTeams){
       teams.append(renderTeamCard(team,!result&&team.members.length===1));
     }
     output.append(teams);
