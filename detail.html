@@ -1,44 +1,156 @@
 <!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#245c45">
-  <title>Check-in theo ngày · Cầu lông</title>
-  <link rel="icon" href="./assets/avatars/guest.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./css/style.css">
-</head>
-<body>
-  <header class="site-header"><a class="brand" href="./index.html" aria-label="Cầu lông — Trang chủ"><span class="brand-mark" aria-hidden="true">↗</span><span>Cầu lông<span class="brand-caption">HẸN NHAU TRÊN SÂN</span></span></a><span class="header-note"><span class="live-dot"></span> Cùng chơi, cùng vui</span></header>
-  <main class="container detail-container">
-    <a class="back-link" id="back-link" href="./index.html"><span aria-hidden="true">←</span> Quay về lịch</a>
-    <section id="invalid-date" class="invalid-date" hidden><h1>Ngày không hợp lệ</h1><p>Vui lòng quay về lịch và chọn lại một ngày.</p><a href="./index.html" class="button button-primary" style="margin-top:20px">Mở lịch check-in</a></section>
-    <div id="detail-content" hidden>
-      <section class="date-hero" aria-label="Ngày check-in"><p class="eyebrow" id="date-weekday"></p><h1 class="date-number" id="date-number"></h1><p class="date-month" id="date-month"></p><p class="count-pill"><span class="live-dot" aria-hidden="true"></span><span id="date-count">Đang tải danh sách…</span></p></section>
-      <div class="section-heading"><h2>Bạn đã sẵn sàng lên sân?</h2><p>Chọn tên để check-in</p></div>
-      <div id="member-grid" class="member-grid" aria-label="Thành viên của nhóm"></div>
-      <div id="data-status" class="data-status" role="status" aria-live="polite">Đang kết nối với nhóm…</div>
-      <button id="retry-button" class="button button-light retry-button" type="button" hidden>Thử lại</button>
-      <section class="guest-section" aria-label="Check-in khách vãng lai">
-        <div class="guest-prompt"><div><h2>Không có trong danh sách?</h2><p>Thêm một người bạn, thêm một trận cầu vui.</p></div><button id="guest-toggle" class="button guest-toggle" type="button" aria-controls="guest-form" aria-expanded="false">Bạn là khách vãng lai <span aria-hidden="true">↗</span></button></div>
-        <form id="guest-form" class="guest-form" hidden novalidate>
-          <label for="guest-name">Họ và tên</label>
-          <div class="input-row"><input id="guest-name" name="name" placeholder="Nhập họ tên của bạn" autocomplete="name" maxlength="120" required aria-describedby="guest-note guest-error"><button id="guest-submit" class="button button-primary" type="submit" disabled>Xác nhận check-in</button></div>
-          <p class="input-note" id="guest-note">Từ 2–60 ký tự. Không cần đăng ký tài khoản.</p><p class="field-error" id="guest-error" role="alert"></p>
-        </form>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#245c45" />
+    <title>Check-in theo ngày · Cầu lông</title>
+    <link rel="icon" href="./assets/avatars/guest.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="Cầu lông — Trang chủ"
+        ><span class="brand-mark" aria-hidden="true">↗</span
+        ><span
+          >Cầu lông<span class="brand-caption">HẸN NHAU TRÊN SÂN</span></span
+        ></a
+      ><span class="header-note"
+        ><span class="live-dot"></span> Cùng chơi, cùng vui</span
+      >
+    </header>
+    <main class="container detail-container">
+      <a class="back-link" id="back-link" href="./index.html"
+        ><span aria-hidden="true">←</span> Quay về lịch</a
+      >
+      <section id="invalid-date" class="invalid-date" hidden>
+        <h1>Ngày không hợp lệ</h1>
+        <p>Vui lòng quay về lịch và chọn lại một ngày.</p>
+        <a
+          href="./index.html"
+          class="button button-primary"
+          style="margin-top: 20px"
+          >Mở lịch check-in</a
+        >
       </section>
-      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
-      <section aria-labelledby="attendees-title"><div class="section-heading"><h2 id="attendees-title">Đã hẹn lên sân <span id="attendee-count" class="list-count">—</span></h2><p>Thời gian check-in · giờ Việt Nam</p></div><ul id="attendee-list" class="attendee-list"><li class="empty-state">Đang tải danh sách check-in…</li></ul></section>
-    </div>
-  </main>
-  <footer class="site-footer"><span>Cầu lông <span class="footer-dot">/</span> Lịch của những buổi vui</span><span>Gặp nhau trên sân nhé!</span></footer>
-  <noscript><p class="data-status is-error">Vui lòng bật JavaScript để check-in.</p></noscript>
-  <script type="module">
-    import('./js/detail.js').catch(() => {
-      document.querySelector('#detail-content').hidden = false;
-      document.querySelector('#data-status').textContent = 'Không tải được ứng dụng. Kiểm tra mạng rồi tải lại trang.';
-      const retry = document.querySelector('#retry-button'); retry.hidden = false; retry.onclick = () => location.reload();
-    });
-  </script>
-</body>
+      <div id="detail-content" hidden>
+        <section class="date-hero" aria-label="Ngày check-in">
+          <p class="eyebrow" id="date-weekday"></p>
+          <h1 class="date-number" id="date-number"></h1>
+          <p class="date-month" id="date-month"></p>
+          <p class="count-pill">
+            <span class="live-dot" aria-hidden="true"></span
+            ><span id="date-count">Đang tải danh sách…</span>
+          </p>
+        </section>
+        <div class="section-heading">
+          <h2>Bạn đã sẵn sàng lên sân?</h2>
+          <p>Chọn tên để check-in</p>
+        </div>
+        <div
+          id="member-grid"
+          class="member-grid"
+          aria-label="Thành viên của nhóm"
+        ></div>
+        <div
+          id="data-status"
+          class="data-status"
+          role="status"
+          aria-live="polite"
+        >
+          Đang kết nối với nhóm…
+        </div>
+        <button
+          id="retry-button"
+          class="button button-light retry-button"
+          type="button"
+          hidden
+        >
+          Thử lại
+        </button>
+        <section class="guest-section" aria-label="Check-in khách vãng lai">
+          <div class="guest-prompt">
+            <div>
+              <h2>Không có trong danh sách?</h2>
+              <p>Thêm một người bạn, thêm một trận cầu vui.</p>
+            </div>
+            <button
+              id="guest-toggle"
+              class="button guest-toggle"
+              type="button"
+              aria-controls="guest-form"
+              aria-expanded="false"
+            >
+              Bạn là khách vãng lai <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+          <form id="guest-form" class="guest-form" hidden novalidate>
+            <label for="guest-name">Họ và tên</label>
+            <div class="input-row">
+              <input
+                id="guest-name"
+                name="name"
+                placeholder="Nhập họ tên của bạn"
+                autocomplete="name"
+                maxlength="120"
+                required
+                aria-describedby="guest-note guest-error"
+              /><button
+                id="guest-submit"
+                class="button button-primary"
+                type="submit"
+                disabled
+              >
+                Xác nhận check-in
+              </button>
+            </div>
+            <p class="input-note" id="guest-note">
+              Từ 2–60 ký tự. Không cần đăng ký tài khoản.
+            </p>
+            <p class="field-error" id="guest-error" role="alert"></p>
+          </form>
+        </section>
+        <div
+          id="notice"
+          class="notice"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+        <section aria-labelledby="attendees-title">
+          <div class="section-heading">
+            <h2 id="attendees-title">
+              Đã hẹn lên sân
+              <span id="attendee-count" class="list-count">—</span>
+            </h2>
+            <p>Thời gian check-in · giờ Việt Nam</p>
+          </div>
+          <ul id="attendee-list" class="attendee-list">
+            <li class="empty-state">Đang tải danh sách check-in…</li>
+          </ul>
+        </section>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <span
+        >Cầu lông <span class="footer-dot">/</span> Lịch của những buổi
+        vui</span
+      ><span>Gặp nhau trên sân nhé!</span>
+    </footer>
+    <noscript
+      ><p class="data-status is-error">
+        Vui lòng bật JavaScript để check-in.
+      </p></noscript
+    >
+    <script type="module">
+      import("./js/detail.js").catch(() => {
+        document.querySelector("#detail-content").hidden = false;
+        document.querySelector("#data-status").textContent =
+          "Không tải được ứng dụng. Kiểm tra mạng rồi tải lại trang.";
+        const retry = document.querySelector("#retry-button");
+        retry.hidden = false;
+        retry.onclick = () => location.reload();
+      });
+    </script>
+  </body>
 </html>

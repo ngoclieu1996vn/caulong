@@ -100,3 +100,63 @@ test('offline guest submission waits for the server and reconnects with one docu
   await page.reload();
   await expect(page.locator('#attendee-count')).toHaveText('1');
 });
+
+test('concurrent service calls confirm one creation and report the other as already checked in', async ({ page, context }) => {
+  await page.goto('detail.html?date=2026-10-17&emulator=1');
+  await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  const second = await context.newPage();
+  await second.goto('detail.html?date=2026-10-17&emulator=1');
+  await expect(second.locator('#data-status')).toContainText('Đã đồng bộ');
+  const write = tab => tab.evaluate(async () => (await import('./js/checkin-service.js')).checkInMember('2026-10-17', 'member_04'));
+  const results = await Promise.all([write(page), write(second)]);
+  expect(results.map(result => result.alreadyExists).sort()).toEqual([false, true]);
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await second.close();
+});
+
+test('phone layout, keyboard selection and history navigation keep the daily list live', async ({ page, context }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto('index.html?month=2026-10&emulator=1');
+  await page.locator('a[data-date="2026-10-18"]').click();
+  await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  const select = page.locator('[data-member-id="member_02"] .member-select');
+  await select.focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('[data-member-id="member_02"] .member-action')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await page.locator('#member-grid').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length)).toBe(2);
+  await page.goBack();
+  await expect(page.locator('#month-title')).toHaveText('Tháng 10, 2026');
+  await page.goForward();
+  await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  const second = await context.newPage();
+  await second.goto('detail.html?date=2026-10-18&emulator=1');
+  await expect(second.locator('#data-status')).toContainText('Đã đồng bộ');
+  await second.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-18', 'Khách Lịch Sử'));
+  await expect(page.locator('#attendee-list')).toContainText('Khách Lịch Sử');
+  await page.screenshot({ path: '.playwright/detail-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto('index.html?month=2026-10&emulator=1');
+  await expect(page.locator('a[data-date="2026-10-14"] img')).toHaveCount(3);
+  await page.screenshot({ path: '.playwright/calendar-desktop.png', fullPage: true });
+  await second.close();
+});
+
+test('missing create permission is reported as failure rather than duplicate success', async ({ page }) => {
+  const env = await initializeTestEnvironment({ projectId: 'demo-calendar-checkin', firestore: {
+    host: '127.0.0.1', port: 8080,
+    rules: 'rules_version = "2"; service cloud.firestore { match /databases/{database}/documents { match /checkins/{id} { allow read: if true; allow write: if false; } } }',
+  } });
+  try {
+    await page.goto('detail.html?date=2026-10-19&emulator=1');
+    await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+    await page.locator('[data-member-id="member_05"] .member-select').click();
+    await page.locator('[data-member-id="member_05"] .checkin-button').click();
+    await expect(page.locator('#notice')).toContainText('Firestore Rules');
+    await expect(page.locator('#notice')).toHaveClass(/is-error/);
+    await expect(page.locator('#attendee-count')).toHaveText('0');
+  } finally {
+    const { readFile } = await import('node:fs/promises');
+    await initializeTestEnvironment({ projectId: 'demo-calendar-checkin', firestore: { host: '127.0.0.1', port: 8080, rules: await readFile('firestore.rules', 'utf8') } }).then(restore => restore.cleanup());
+    await env.cleanup();
+  }
+});
