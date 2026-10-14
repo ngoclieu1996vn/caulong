@@ -5,6 +5,7 @@ import {
   onSnapshot,
   doc,
   setDoc,
+  deleteDoc,
   getDocFromServer,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
@@ -38,7 +39,7 @@ export function watchCheckins(filter, onData, onError) {
     (snapshot) => {
       const present = new Set(snapshot.docs.map((item) => item.id));
       for (const id of confirmed.keys())
-        if (!present.has(id)) confirmed.delete(id);
+        if (!present.has(id) && !snapshot.metadata.hasPendingWrites) confirmed.delete(id);
       for (const item of snapshot.docs) {
         const value = item.data();
         if (
@@ -107,6 +108,12 @@ export async function checkInGuest(date, input) {
     type: "guest",
     checkedInAt: serverTimestamp(),
   });
+}
+export async function cancelCheckin(id) {
+  if (typeof id !== "string" || !id || id.includes("/")) {
+    throw new Error("Check-in không hợp lệ.");
+  }
+  await deleteDoc(doc(db, "checkins", id));
 }
 export function checkinErrorMessage(error) {
   if (error?.code === "permission-denied")

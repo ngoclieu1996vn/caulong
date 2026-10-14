@@ -757,10 +757,34 @@ h1 {
 }
 .attendee {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   padding: 15px 18px;
   border-bottom: 1px solid var(--line);
+}
+.attendee-actions { flex-shrink: 0; }
+.cancel-checkin {
+  min-height: 36px;
+  padding: 7px 10px;
+  border-color: #eadbd5;
+  background: #fff9f6;
+  color: #9a493b;
+  font-size: 10px;
+}
+.attendee-confirmation {
+  flex-basis: 100%;
+  padding: 13px;
+  border-radius: 10px;
+  background: #fbf2ee;
+}
+.cancel-prompt { font-size: 11px; line-height: 1.8; overflow-wrap: anywhere; }
+.cancel-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.cancel-controls .button { font-size: 11px; min-height: 40px; }
+.button-danger { background: #a54938; color: white; }
+.button-danger:hover { background: #873a2c; }
+@media (max-width: 600px) {
+  .attendee-actions { flex-basis: 100%; display: flex; justify-content: flex-end; }
 }
 .attendee:last-child {
   border-bottom: 0;

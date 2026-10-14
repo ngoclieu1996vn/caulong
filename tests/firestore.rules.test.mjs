@@ -61,12 +61,19 @@ test('Rules do not check guest memberId or document ID', async () => {
   await assertSucceeds(setDoc(doc(database(), 'checkins/2026-10-14_member_01'), guest()));
   await assertSucceeds(setDoc(doc(database(), 'checkins/guest-test'), guest({ memberId: 'member_01' })));
 });
-test('updates, repeated setDoc and deletes are forbidden', async () => {
+test('updates and repeated setDoc remain forbidden', async () => {
   const ref = doc(database(), 'checkins/2026-10-14_member_01');
   await assertSucceeds(setDoc(ref, member()));
   await assertFails(setDoc(ref, member()));
   await assertFails(updateDoc(ref, { name: 'Tên khác' }));
-  await assertFails(deleteDoc(ref));
+});
+
+test('anonymous users can delete a mistaken check-in and check in again', async () => {
+  const ref = doc(database(), 'checkins/2026-10-14_member_01');
+  await assertSucceeds(setDoc(ref, member()));
+  await assertSucceeds(deleteDoc(ref));
+  assert.equal((await getDoc(ref)).exists(), false);
+  await assertSucceeds(setDoc(ref, member()));
 });
 test('concurrent clients cannot create duplicate member check-ins', async () => {
   const outcomes = await Promise.allSettled([database(), database()].map(db => setDoc(doc(db, 'checkins/2026-10-14_member_01'), member())));

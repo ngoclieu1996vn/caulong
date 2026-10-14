@@ -21,6 +21,7 @@ let service,
   suspended = false,
   generation = 0;
 let records = [];
+let confirmDeleteId = null;
 const cards = new Map();
 
 function element(tag, className, text) {
@@ -110,18 +111,42 @@ function updateCards() {
     pending?.type === "guest" ? "Đang chờ xác nhận…" : "Xác nhận check-in";
   $("#guest-name").disabled = Boolean(pending);
   $("#guest-toggle").disabled = Boolean(pending);
+  for (const button of document.querySelectorAll(".cancel-checkin, .delete-confirm, .delete-keep")) {
+    button.disabled = !ready || Boolean(pending);
+  }
+}
+function focusRowAction(id, selector) {
+  const row = [...$("#attendee-list").children].find(item => item.dataset.checkinId === id);
+  const target = row?.querySelector(selector);
+  if (!target || target.disabled) return false;
+  target.focus({ preventScroll: true });
+  return true;
+}
+function focusAttendeesHeading() {
+  $("#attendees-title").tabIndex = -1;
+  $("#attendees-title").focus({ preventScroll: true });
 }
 function renderAttendees() {
   $("#attendee-count").textContent = String(records.length);
   $("#date-count").textContent = `${records.length} người đã check-in`;
   const list = $("#attendee-list");
+  const active = document.activeElement;
+  const actionClass = ["cancel-checkin", "delete-confirm", "delete-keep"].find(name => active?.classList.contains(name));
+  const focusedAction = list.contains(active) && actionClass
+    ? { id: active.closest(".attendee")?.dataset.checkinId, selector: `.${actionClass}` }
+    : null;
+  const restoreActionFocus = () => {
+    if (focusedAction && !pending && !focusRowAction(focusedAction.id, focusedAction.selector)) focusAttendeesHeading();
+  };
   list.replaceChildren();
   if (!records.length) {
     list.append(element("li", "empty-state", "Chưa có ai check-in ngày này."));
+    restoreActionFocus();
     return;
   }
   for (const record of records) {
     const row = element("li", "attendee");
+    row.dataset.checkinId = record.id;
     const avatarSource =
       record.type === "member"
         ? getMember(record.memberId)?.avatar || GUEST_AVATAR
@@ -142,9 +167,46 @@ function renderAttendees() {
       formatCheckinTime(record.checkedInAt),
     );
     time.append(element("span", "success-label", "✓ Thành công"));
-    row.append(avatar, info, time);
+    const actions = element("div", "attendee-actions");
+    const remove = element("button", "button cancel-checkin", "Hủy check-in");
+    remove.type = "button";
+    remove.disabled = !ready || Boolean(pending);
+    remove.setAttribute("aria-expanded", String(confirmDeleteId === record.id));
+    remove.addEventListener("click", () => {
+      if (!ready || pending) return;
+      confirmDeleteId = record.id;
+      renderAttendees();
+      focusRowAction(record.id, ".delete-confirm");
+    });
+    actions.append(remove);
+    row.append(avatar, info, time, actions);
+    if (confirmDeleteId === record.id) {
+      const confirmation = element("div", "attendee-confirmation");
+      confirmation.setAttribute("role", "group");
+      confirmation.setAttribute("aria-label", `Hủy check-in của ${record.name}`);
+      confirmation.append(element("p", "cancel-prompt", `Hủy check-in của ${record.name}?`));
+      const controls = element("div", "cancel-controls");
+      const deleting = pending?.type === "delete" && pending.record.id === record.id;
+      const confirm = element("button", "button button-danger delete-confirm", deleting ? "Đang hủy…" : "Xác nhận hủy");
+      confirm.type = "button";
+      confirm.disabled = !ready || Boolean(pending);
+      confirm.addEventListener("click", () => submitCancellation(record));
+      const keep = element("button", "button button-light delete-keep", "Giữ lại");
+      keep.type = "button";
+      keep.disabled = !ready || Boolean(pending);
+      keep.addEventListener("click", () => {
+        if (pending) return;
+        confirmDeleteId = null;
+        renderAttendees();
+        focusRowAction(record.id, ".cancel-checkin");
+      });
+      controls.append(confirm, keep);
+      confirmation.append(controls);
+      row.append(confirmation);
+    }
     list.append(row);
   }
+  restoreActionFocus();
 }
 function subscribe() {
   unsubscribe?.();
@@ -163,6 +225,12 @@ function subscribe() {
         return;
       }
       records = result.records;
+      // Firestore can emit a local removal before the delete promise is acknowledged.
+      // Keep the confirmed row and member badge until that promise succeeds.
+      if (pending?.type === "delete" && !records.some(item => item.id === pending.record.id)) {
+        records = [...records, pending.record].sort((a, b) => a.checkedInAt.toMillis() - b.checkedInAt.toMillis());
+      }
+      if (confirmDeleteId && !records.some(item => item.id === confirmDeleteId)) confirmDeleteId = null;
       // Cached empty data alone must never enable an initial check-in.
       if (!result.fromCache) ready = true;
       renderAttendees();
@@ -190,11 +258,42 @@ function subscribe() {
   );
 }
 function pendingNotice() {
+  if (pending?.type === "delete") {
+    notice(navigator.onLine
+      ? "Đang hủy check-in, chờ Firebase xác nhận…"
+      : "Bạn đang ngoại tuyến. Yêu cầu hủy đang chờ kết nối và xác nhận từ Firebase.");
+    return;
+  }
   notice(
     navigator.onLine
       ? "Đang gửi check-in, chờ Firebase xác nhận…"
       : "Bạn đang ngoại tuyến. Check-in đang chờ kết nối và xác nhận từ Firebase.",
   );
+}
+async function submitCancellation(record) {
+  if (!ready || pending || confirmDeleteId !== record.id || !records.some(item => item.id === record.id)) return;
+  pending = { type: "delete", record };
+  updateCards();
+  renderAttendees();
+  pendingNotice();
+  let succeeded = false;
+  try {
+    await service.cancelCheckin(record.id);
+    records = records.filter(item => item.id !== record.id);
+    confirmDeleteId = null;
+    if (selectedId === record.memberId) selectedId = null;
+    notice(`Đã hủy check-in của ${record.name}.`);
+    succeeded = true;
+  } catch (error) {
+    notice(service.checkinErrorMessage(error), true);
+  } finally {
+    pending = null;
+    renderAttendees();
+    updateCards();
+    if (!succeeded) focusRowAction(record.id, ".delete-confirm");
+    else if (record.type === "member" && cards.has(record.memberId)) cards.get(record.memberId).select.focus({ preventScroll: true });
+    else focusAttendeesHeading();
+  }
 }
 async function submitMember(member) {
   if (

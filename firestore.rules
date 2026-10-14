@@ -2,8 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /checkins/{id} {
-      allow read, create: if true;
-      allow update, delete: if false;
+      allow read, create, delete: if true;
+      allow update: if false;
     }
     match /{document=**} {
       allow read, write: if false;

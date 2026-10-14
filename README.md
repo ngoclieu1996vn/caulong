@@ -41,7 +41,7 @@ npx firebase login
 npx firebase deploy --only firestore:rules --project cau-long-aecdc
 ```
 
-Cập nhật ngày 14/10/2026: database `(default)` đã được tạo và cho phép đọc `checkins`. Theo yêu cầu, Rules chỉ phân quyền đọc/thêm mới và chặn sửa/xóa; không kiểm tra tên, ID, ngày, timestamp hoặc cấu trúc dữ liệu. Chép lại toàn bộ `firestore.rules` vào tab Rules và bấm **Publish** để áp dụng. Sửa file hoặc cập nhật website không tự publish Rules lên Firebase.
+Cập nhật ngày 14/10/2026: database `(default)` đã được tạo và cho phép đọc `checkins`. Theo yêu cầu, Rules cho phép đọc/thêm mới/xóa và chặn sửa; không kiểm tra tên, ID, ngày, timestamp hoặc cấu trúc dữ liệu. Chép lại toàn bộ `firestore.rules` vào tab Rules và bấm **Publish** để áp dụng, bao gồm quyền hủy check-in. Sửa file hoặc cập nhật website không tự publish Rules lên Firebase.
 
 ## Thành viên và avatar
 
@@ -55,7 +55,7 @@ Sửa các đối tượng trong [`js/members.js`](./js/members.js): `id`, `name
 
 Collection `checkins`, đúng các field: `date`, `memberId`, `name`, `type`, `checkedInAt`. Ngày dùng dạng `YYYY-MM-DD`; ngày hiện tại và thời gian hiển thị theo **Asia/Ho_Chi_Minh**.
 
-- Thành viên: ID document `${date}_${memberId}`, ví dụ `2026-10-14_member_01`; Rules chỉ cho create, chặn update/delete nên không tạo trùng kể cả hai thiết bị gửi đồng thời.
+- Thành viên: ID document `${date}_${memberId}`, ví dụ `2026-10-14_member_01`; Rules chặn update nên không ghi đè check-in đã tồn tại kể cả hai thiết bị gửi đồng thời. Sau khi hủy, document được xóa và thành viên có thể check-in lại.
 - Khách: ứng dụng tạo ID tự động, `memberId: null`, `type: 'guest'`. Khách khác nhau được phép trùng tên. Rules không kiểm tra định dạng ID hoặc loại document.
 - Thời gian luôn ghi bằng `serverTimestamp()`; không báo thành công từ local pending writes.
 - Lịch chỉ subscribe từ đầu tháng tới trước đầu tháng tiếp theo. Chi tiết query đúng ngày; sắp xếp tăng dần theo timestamp tại client, không cần composite index.
@@ -65,13 +65,21 @@ Khi offline sau khi trang đã kết nối, thao tác ghi có thể chờ đến
 
 Tên khách được trim, chuẩn hóa NFC, gom khoảng trắng; cần 2–60 ký tự, có chữ, chỉ gồm chữ Unicode, dấu tổ hợp, khoảng trắng, dấu chấm/gạch nối/nháy đơn. HTML, emoji và ký tự điều khiển không hợp lệ. Tên hiển thị bằng textContent.
 
+## Hủy check-in nhầm
+
+Trong danh sách đã check-in, bấm **Hủy check-in** cạnh người cần hủy. Một vùng xác nhận xuất hiện ngay tại dòng đó: **Xác nhận hủy** để xóa, **Giữ lại** để bỏ qua. Hỗ trợ cả thành viên và khách.
+
+Ứng dụng giữ nguyên dòng, số lượng và trạng thái đã check-in đến khi Firebase xác nhận xóa. Khi offline, yêu cầu hủy chờ kết nối; các nút gửi bị khóa. Nếu Firebase từ chối, dòng được giữ lại và có thể thử lại. Hủy thành công đồng bộ sang lịch và thiết bị khác, cho phép thành viên check-in lại.
+
+Ứng dụng không có đăng nhập nên ai truy cập cũng có thể hủy check-in của người khác. Cần Publish bản Rules mới cho phép `delete` trước khi dùng tính năng này.
+
 Kiểm tra ngày và tên nằm ở JavaScript của ứng dụng. Firestore Rules không kiểm tra dữ liệu đầu vào; client riêng có thể tạo document với nội dung tùy ý trong `checkins`.
 
 ## Giới hạn ứng dụng không đăng nhập
 
 Ai mở website cũng có thể đọc danh sách và check-in thay thành viên. Không thể chứng minh người bấm chính là chủ avatar, không chống spam khách tuyệt đối. Tối ưu query theo tháng không phải hạn chế quyền đọc; người biết cấu hình có thể đọc collection được public read. Không lưu thông tin nhạy cảm trong danh sách.
 
-Rules chặn sửa/xóa và truy cập collection khác, cho phép đọc/thêm mới `checkins` mà không kiểm tra cấu trúc, tên/ID hoặc timestamp. Rules không giới hạn tổng số lượt ghi của một người. Nếu cần mức bảo vệ cao hơn, xem xét Firebase App Check, xác thực người dùng và cơ chế rate limiting riêng. Các nâng cấp này chưa được thêm vào ứng dụng.
+Rules chặn sửa và truy cập collection khác, cho phép đọc/thêm mới/xóa `checkins` mà không kiểm tra cấu trúc, tên/ID hoặc timestamp. Rules không giới hạn tổng số lượt ghi của một người. Nếu cần mức bảo vệ cao hơn, xem xét Firebase App Check, xác thực người dùng và cơ chế rate limiting riêng. Các nâng cấp này chưa được thêm vào ứng dụng.
 
 ## Deploy GitHub Pages
 
@@ -120,8 +128,8 @@ npx firebase emulators:start --only firestore --project demo-calendar-checkin
 Kết quả đã chạy ngày 14/10/2026:
 
 - **7/7** unit tests: ngày Việt Nam, ngày nhuận, ngày sai, khoảng tháng, lịch thứ Hai, tên khách, giờ hiển thị.
-- Firestore Emulator tests kiểm tra đọc/thêm mới không phụ thuộc tên, ID hoặc cấu trúc dữ liệu; giữ chặn ghi trùng/đồng thời, update/delete và collection khác.
-- **9/9** Chromium tests: tháng và avatar/+N, mobile 320px/360px, chọn thẻ không ghi, check-in tường minh, khách/reload, realtime hai tab, CDN failure, offline/reconnect, service concurrent, keyboard/history, lỗi Rules không bị báo thành công và giữ emulator trên mọi liên kết về lịch.
+- Firestore Emulator tests kiểm tra đọc/thêm mới không phụ thuộc tên, ID hoặc cấu trúc dữ liệu; cho phép xóa và check-in lại, giữ chặn ghi trùng/đồng thời, update và collection khác.
+- **13/13** Chromium tests: lịch và check-in, realtime, offline, điều hướng, lỗi quyền, hủy thành viên/khách có xác nhận, Giữ lại, đồng bộ hủy sang tab/lịch, check-in lại, hủy khi offline, lỗi quyền xóa và giữ focus xác nhận qua cập nhật realtime.
 - Điều hướng history đã kiểm tra realtime sau khi quay lại. Chưa xác nhận riêng trình duyệt thực sự dùng BFCache (`pageshow.persisted`) hoặc đo được chính xác số subscription; mã có xử lý hủy/khôi phục tương ứng.
 - Giao diện đã xem bằng screenshot desktop 1280px và mobile 360px. iPhone Safari và Android thiết bị thật chưa được kiểm thử.
 - Không ghi test vào Firebase production; chưa xác minh check-in end-to-end trên Firebase thật vì chưa có database. Hosting và dữ liệu Firestore là hai bước thiết lập riêng.

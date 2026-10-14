@@ -180,3 +180,108 @@ test('missing create permission is reported as failure rather than duplicate suc
     await env.cleanup();
   }
 });
+
+test('inline cancellation keeps the record until confirmation, syncs tabs and permits check-in again', async ({ page, context }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto('detail.html?date=2026-10-20&emulator=1');
+  await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  await page.locator('[data-member-id="member_01"] .member-select').click();
+  await page.locator('[data-member-id="member_01"] .checkin-button').click();
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  const second = await context.newPage();
+  await second.goto('detail.html?date=2026-10-20&emulator=1');
+  await expect(second.locator('#attendee-count')).toHaveText('1');
+  const calendar = await context.newPage();
+  await calendar.goto('index.html?month=2026-10&emulator=1');
+  const day = calendar.locator('a[data-date="2026-10-20"]').locator('..');
+  await expect(day.locator('img')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await page.getByRole('button', { name: 'Giữ lại', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toHaveCount(0);
+  await expect(second.locator('#attendee-count')).toHaveText('1');
+  await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: '.playwright/cancel-mobile.png', fullPage: true });
+  await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
+  await expect(page.locator('#attendee-count')).toHaveText('0');
+  await expect(second.locator('#attendee-count')).toHaveText('0');
+  await expect(day.locator('img')).toHaveCount(0);
+  await expect(page.locator('[data-member-id="member_01"]')).not.toHaveClass(/is-checked/);
+  await page.locator('[data-member-id="member_01"] .member-select').click();
+  await page.locator('[data-member-id="member_01"] .checkin-button').click();
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await page.getByRole('button', { name: 'Bạn là khách vãng lai' }).click();
+  await page.getByLabel('Họ và tên').fill('Khách hủy nhầm');
+  await page.getByRole('button', { name: 'Xác nhận check-in' }).click();
+  await expect(page.locator('#attendee-count')).toHaveText('2');
+  const guest = page.locator('.attendee').filter({ hasText: 'Khách hủy nhầm' });
+  await guest.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
+  await guest.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await expect(guest).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await second.close(); await calendar.close();
+});
+
+test('offline cancellation keeps the confirmed row and count until the server acknowledges deletion', async ({ page, context }) => {
+  await page.goto('detail.html?date=2026-10-21&emulator=1');
+  await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInMember('2026-10-21', 'member_02'));
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
+  await context.setOffline(true);
+  await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
+  await expect(page.locator('#notice')).toContainText('chờ');
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await expect(page.locator('.attendee')).toHaveCount(1);
+  await expect(page.locator('[data-member-id="member_02"]')).toHaveClass(/is-checked/);
+  await expect(page.getByRole('button', { name: 'Đang hủy…', exact: true })).toBeDisabled();
+  await context.setOffline(false);
+  await expect(page.locator('#attendee-count')).toHaveText('0');
+  await expect(page.locator('#notice')).toContainText('Đã hủy');
+});
+
+test('rejected cancellation preserves the record and allows retry', async ({ page }) => {
+  const env = await initializeTestEnvironment({ projectId: 'demo-calendar-checkin', firestore: {
+    host: '127.0.0.1', port: 8080,
+    rules: 'rules_version = "2"; service cloud.firestore { match /databases/{database}/documents { match /checkins/{id} { allow read, create: if true; allow update, delete: if false; } } }',
+  } });
+  try {
+    await page.goto('detail.html?date=2026-10-22&emulator=1');
+    await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+    await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-22', 'Khách giữ lại'));
+    await expect(page.locator('#attendee-count')).toHaveText('1');
+    await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
+    await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
+    await expect(page.locator('#notice')).toHaveClass(/is-error/);
+    await expect(page.locator('#notice')).toContainText('Firestore Rules');
+    await expect(page.locator('#attendee-count')).toHaveText('1');
+    await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toBeEnabled();
+  } finally {
+    const { readFile } = await import('node:fs/promises');
+    await initializeTestEnvironment({ projectId: 'demo-calendar-checkin', firestore: { host: '127.0.0.1', port: 8080, rules: await readFile('firestore.rules', 'utf8') } }).then(restore => restore.cleanup());
+    await env.cleanup();
+  }
+});
+
+test('inline confirmation keeps its focused action through realtime changes and focuses the heading if removed', async ({ page, context }) => {
+  await page.goto('detail.html?date=2026-10-23&emulator=1');
+  await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInMember('2026-10-23', 'member_03'));
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toBeFocused();
+  const second = await context.newPage();
+  await second.goto('detail.html?date=2026-10-23&emulator=1');
+  await expect(second.locator('#data-status')).toContainText('Đã đồng bộ');
+  await second.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-23', 'Khách cập nhật'));
+  await expect(page.locator('#attendee-count')).toHaveText('2');
+  await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toBeFocused();
+  await second.evaluate(async () => (await import('./js/checkin-service.js')).cancelCheckin('2026-10-23_member_03'));
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toHaveCount(0);
+  await expect(page.locator('#attendees-title')).toBeFocused();
+  await second.close();
+});
