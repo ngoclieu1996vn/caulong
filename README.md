@@ -79,7 +79,7 @@ Rules chặn sửa/xóa, giới hạn cấu trúc, tên/ID thành viên và serv
 2. Nếu repo local chưa có remote, chạy với URL repo của bạn:
 
    ```sh
-   git remote add origin https://github.com/YOUR_ACCOUNT/YOUR_REPO.git
+   git remote add origin https://github.com/ngoclieu1996vn/caulong.git
    git push -u origin main
    ```
 
@@ -89,7 +89,9 @@ Rules chặn sửa/xóa, giới hạn cấu trúc, tên/ID thành viên và serv
 
 Mọi đường dẫn nội bộ đều tương đối, hỗ trợ `/YOUR_REPO/`. File `.nojekyll` tắt xử lý Jekyll; không có lệnh build production. Không cần thêm domain vào Firebase Auth vì ứng dụng không dùng Authentication.
 
-**Chưa xuất bản GitHub Pages:** repo local chưa có Git remote và môi trường không có GitHub CLI/tài khoản triển khai được cấp quyền. Không có URL public được xác minh để bàn giao ở thời điểm viết hướng dẫn.
+Repo đích do người dùng cung cấp: [ngoclieu1996vn/caulong](https://github.com/ngoclieu1996vn/caulong). Nếu `origin` đã có URL này, bỏ qua lệnh `git remote add` và chỉ push.
+
+**Chưa xuất bản GitHub Pages:** Git hiện chưa có thông tin đăng nhập được cấp quyền truy cập repo. Đã đề xuất tích hợp GitHub nhưng chưa xác nhận kết nối. Không có URL public được xác minh để bàn giao ở thời điểm viết hướng dẫn.
 
 ## Kiểm thử phát triển
 
@@ -119,7 +121,8 @@ Kết quả đã chạy ngày 14/10/2026:
 
 - **7/7** unit tests: ngày Việt Nam, ngày nhuận, ngày sai, khoảng tháng, lịch thứ Hai, tên khách, giờ hiển thị.
 - **9/9** Firestore Emulator tests: tạo hợp lệ, payload sai, spoof ID/tên, server timestamp, ghi trùng/đồng thời, update/delete, guest chiếm ID thành viên, collection khác.
-- **8/8** Chromium tests: tháng và avatar/+N, mobile 320px/360px, chọn thẻ không ghi, check-in tường minh, khách/reload, realtime hai tab, CDN failure, offline/reconnect, service concurrent, keyboard/history và lỗi Rules không bị báo thành công.
+- **9/9** Chromium tests: tháng và avatar/+N, mobile 320px/360px, chọn thẻ không ghi, check-in tường minh, khách/reload, realtime hai tab, CDN failure, offline/reconnect, service concurrent, keyboard/history, lỗi Rules không bị báo thành công và giữ emulator trên mọi liên kết về lịch.
+- Điều hướng history đã kiểm tra realtime sau khi quay lại. Chưa xác nhận riêng trình duyệt thực sự dùng BFCache (`pageshow.persisted`) hoặc đo được chính xác số subscription; mã có xử lý hủy/khôi phục tương ứng.
 - Giao diện đã xem bằng screenshot desktop 1280px và mobile 360px. iPhone Safari và Android thiết bị thật chưa được kiểm thử.
 - Không ghi test vào Firebase production; chưa xác minh end-to-end trên Firebase thật hoặc deployment GitHub Pages.
 

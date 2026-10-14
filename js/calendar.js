@@ -1,5 +1,8 @@
 import { todayKey, calendarDays, monthRange, isValidDateKey } from "./utils.js";
 import { getMember, GUEST_AVATAR } from "./members.js";
+import { emulatorSuffix, preserveLocalCalendarLinks } from "./navigation.js";
+
+preserveLocalCalendarLinks();
 
 const $ = (selector) => document.querySelector(selector);
 const parameters = new URLSearchParams(location.search);
@@ -14,11 +17,6 @@ let service,
   suspended = false;
 let records = [];
 let loading = true;
-const emulatorSuffix =
-  ["127.0.0.1", "localhost", "[::1]"].includes(location.hostname) &&
-  parameters.get("emulator") === "1"
-    ? "&emulator=1"
-    : "";
 
 function status(message, error = false) {
   $("#data-status").textContent = message;

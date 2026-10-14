@@ -13,3 +13,5 @@ Use only `demo-calendar-checkin` on the local Firestore Emulator for writes.
 - Initialization: block Firebase CDN requests, show a readable error instead of endless loading.
 
 Automated results and remaining manual checks are recorded in README after verification.
+
+Independent review note: history navigation passed, but actual BFCache entry and exactly-one-listener measurement remain unverified. Source explicitly handles pagehide and persisted pageshow. Emulator navigation isolation regression covers logos and invalid-date links while trapping production requests.

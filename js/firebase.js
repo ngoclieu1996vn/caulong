@@ -3,6 +3,7 @@ import {
   getFirestore,
   connectFirestoreEmulator,
 } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+import { isLocalEmulator } from "./navigation.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAeRAT7H7K5YZYeqYdDQP1tpTurJ1SrCso",
@@ -15,9 +16,7 @@ const firebaseConfig = {
 };
 
 // Explicit local-only testing. A deployed site can never enable this mode.
-export const isEmulator =
-  ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) &&
-  new URLSearchParams(location.search).get("emulator") === "1";
+export const isEmulator = isLocalEmulator;
 const app = initializeApp(
   isEmulator
     ? { ...firebaseConfig, projectId: "demo-calendar-checkin" }

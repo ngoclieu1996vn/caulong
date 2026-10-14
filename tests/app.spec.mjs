@@ -141,6 +141,25 @@ test('phone layout, keyboard selection and history navigation keep the daily lis
   await second.close();
 });
 
+test('every local calendar link preserves emulator isolation including invalid date recovery', async ({ page }) => {
+  const productionRequests = [];
+  await page.route(/https:\/\/firestore\.googleapis\.com\/.*/, route => {
+    productionRequests.push(route.request().url()); return route.abort();
+  });
+  for (const [source, selector] of [
+    ['index.html?month=2026-10&emulator=1', '.brand'],
+    ['detail.html?date=2026-10-14&emulator=1', '.brand'],
+    ['detail.html?date=2026-02-29&emulator=1', '#back-link'],
+    ['detail.html?date=2026-02-29&emulator=1', '#invalid-date a'],
+  ]) {
+    await page.goto(source);
+    await page.locator(selector).click();
+    await expect(page).toHaveURL(/[?&]emulator=1(?:&|$)/);
+    await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  }
+  expect(productionRequests).toEqual([]);
+});
+
 test('missing create permission is reported as failure rather than duplicate success', async ({ page }) => {
   const env = await initializeTestEnvironment({ projectId: 'demo-calendar-checkin', firestore: {
     host: '127.0.0.1', port: 8080,

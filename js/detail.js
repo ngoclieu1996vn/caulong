@@ -5,15 +5,13 @@ import {
   formatCheckinTime,
 } from "./utils.js";
 import { MEMBERS, getMember, GUEST_AVATAR } from "./members.js";
+import { emulatorSuffix, preserveLocalCalendarLinks } from "./navigation.js";
+
+preserveLocalCalendarLinks();
 
 const $ = (selector) => document.querySelector(selector);
 const parameters = new URLSearchParams(location.search);
 const date = parameters.get("date");
-const emulatorSuffix =
-  ["127.0.0.1", "localhost", "[::1]"].includes(location.hostname) &&
-  parameters.get("emulator") === "1"
-    ? "&emulator=1"
-    : "";
 let service,
   unsubscribe,
   selectedId = null,
