@@ -7,8 +7,9 @@ const input = () => createBillingInput(people);
 test('defaults and multiple shuttle prices produce exact weighted bill', () => {
   const data = input();
   assert.equal(data.courtFee, 220000);
-  assert.deepEqual(data.shuttles.map(s=>[s.unitPrice,s.quantity]), [[27000,0],[25000,0]]);
-  data.shuttles[0].quantity=2; data.shuttles[1].quantity=1;
+  assert.deepEqual(data.shuttles.map(s=>[s.unitPrice,s.quantity]), [[27000,0]]);
+  data.shuttles[0].quantity=2;
+  data.shuttles.push({id:'second',label:'Cầu khác',unitPrice:25000,quantity:1});
   data.tea={quantity:1,unitPrice:20000};
   data.hours[2].halfHours=2; data.hours[3].halfHours=2;
   const result=calculateBill(data,people);

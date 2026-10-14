@@ -1,15 +1,15 @@
 .game-tools .button { display:flex; align-items:center; gap:9px; min-height:44px; font-size:21px; border:1px solid #d6e0d4; background:#f3f6ed; }
 .tool-caption { font-size:12px; }
+.games-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.games-heading h2 { min-width:0; }
+.game-restart { flex-shrink:0; width:42px; height:42px; min-height:42px; padding:0; border-radius:50%; font-size:25px; line-height:1; color:#245c45; }
 .wheel-stage { width:min(100%,340px); position:relative; margin:28px auto; aspect-ratio:1; }
 .wheel-disc { width:100%; height:100%; overflow:hidden; border-radius:50%; box-shadow:0 9px 12px #17352422; }
 .team-wheel { width:100%; height:100%; display:block; border-radius:50%; filter:drop-shadow(0 9px 8px #17352422); }
 .wheel-pointer { position:absolute; left:50%; top:-19px; transform:translateX(-50%); color:#ac5e3c; font-size:40px; text-shadow:0 2px 0 white; }
-.wheel-winner { display:flex; align-items:center; gap:18px; padding:20px; color:#245c45; margin:20px 0; border:1px solid #d6e1cb; border-radius:16px; background:linear-gradient(120deg,#edf3e4,#faf8ee); }
-.wheel-winner>.avatar-trigger { border:4px solid #fff; border-radius:50%; box-shadow:0 3px 12px #245c4518; flex-shrink:0; }
-.wheel-winner-info { display:flex; flex-direction:column; gap:7px; min-width:0; }
-.winner-caption { font-size:10px; font-weight:700; letter-spacing:1.5px; color:#6a805b; }
-.winner-name { font-size:22px; line-height:1.3; overflow-wrap:anywhere; }
-.winner-team-note { font-size:12px; color:#637454; }
+.wheel-spin-button { position:absolute; inset:0; margin:auto; width:84px; height:84px; min-height:84px; padding:0; border:6px solid #fff; border-radius:50%; box-shadow:0 3px 14px #153b3b42; font-size:16px; font-weight:700; z-index:1; }
+.wheel-spin-button:hover { transform:none; }
+.wheel-spin-button:focus-visible,.game-restart:focus-visible { outline:3px solid #b67e45; outline-offset:4px; }
 .wheel-history { margin-top:24px; border-top:1px solid #e1e7da; padding-top:16px; }
 .wheel-history>summary { cursor:pointer; color:#667660; font-size:12px; padding:5px 0; }
 .wheel-history[open]>summary { color:#245c45; }
@@ -42,8 +42,7 @@
 .is-shuffling .shuffle-chip { animation:shuffle-chips .35s ease-in-out infinite alternate; animation-delay:calc(var(--i)*-0.07s); }
 .draw-order li,.shuffle-chip { min-width:0; max-width:100%; overflow-wrap:anywhere; }
 .game-gender-row>span:first-child { min-width:0; overflow-wrap:anywhere; }
-.wheel-winner { overflow-wrap:anywhere; }
 @keyframes shuffle-chips { from {transform:translate(-9px,-5px) rotate(-6deg);} to {transform:translate(9px,6px) rotate(6deg);} }
 @media(prefers-reduced-motion:reduce) { .is-shuffling .shuffle-chip { animation:none; } }
 @media(max-width:540px) { .game-tools { gap:8px; } .game-tools .button { padding:10px; font-size:18px; } .tool-caption {font-size:10px;} .game-genders {grid-template-columns:1fr;} .game-teams {grid-template-columns:1fr;} }
-@media(max-width:540px) { .wheel-winner { padding:15px 12px; gap:12px; } .winner-name { font-size:19px; } .winner-caption { font-size:9px; letter-spacing:1px; } .wheel-results-summary { padding:14px 12px; gap:10px; } .wheel-results-summary h3 { font-size:17px; } }
+@media(max-width:540px) { .games-heading { gap:10px; } .wheel-spin-button { width:74px; height:74px; min-height:74px; border-width:5px; font-size:14px; } .wheel-results-summary { padding:14px 12px; gap:10px; } .wheel-results-summary h3 { font-size:17px; } }

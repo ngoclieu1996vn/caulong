@@ -6,7 +6,7 @@ if (process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8080') {
 }
 for (const args of [
   ...readdirSync('js').filter(name => name.endsWith('.js')).map(name => ['--check', `js/${name}`]),
-  ['--test', 'tests/utils.test.mjs', 'tests/participants.test.mjs', 'tests/billing.test.mjs', 'tests/team-games.test.mjs'],
+  ['--test', 'tests/utils.test.mjs', 'tests/participants.test.mjs', 'tests/billing.test.mjs', 'tests/team-games.test.mjs', 'tests/money-input.test.mjs'],
   ['--test', 'tests/firestore.rules.test.mjs'],
   ['node_modules/playwright/cli.js', 'test'],
   ['--test', 'tests/avatar-preview.test.mjs'],

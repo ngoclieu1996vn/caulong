@@ -1,18 +1,20 @@
 import { createBillingInput, reconcileHours, calculateTotals, calculateBill, isBillingCurrent, formatMoney } from './billing.js';
 import { buildParticipants, rosterFingerprint } from './participants.js';
 import { createAvatarButton } from './avatar-preview.js';
-import { el, button, numberField, dataError } from './ui-elements.js';
+import { el, button, numberField, moneyField, closeOnBackdrop, dataError } from './ui-elements.js';
+import { createBillingAccess } from './billing-access.js';
 
 export function createBillingController({date,root,onAllocationsChange}) {
   let participants=[],peopleReady=false,loaded=false,active=false,generation=0,unsubscribe;
   let service,checkins,saved=null,remote=null,revision=0,input=createBillingInput([]),dirty=false,stale=false,busy=false,error='';
-  const toggle=button('Tính tiền',()=>{
-    panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));
-  },'button button-primary');
-  toggle.id='billing-toggle';toggle.setAttribute('aria-controls','billing-panel');toggle.setAttribute('aria-expanded','false');
-  const panel=el('section','day-panel');panel.id='billing-panel';panel.hidden=true;
-  panel.setAttribute('aria-label','Chi phí buổi cầu');
-  panel.append(el('p','eyebrow','CHI PHÍ BUỔI CẦU'),el('h2',null,'Cùng chia, cùng vui'));
+  const toggle=button('Tính tiền',()=>{if(!panel.open)access.request();},'button button-primary');
+  toggle.id='billing-toggle';toggle.setAttribute('aria-controls','billing-panel');toggle.setAttribute('aria-haspopup','dialog');
+  const panel=el('dialog','day-panel billing-modal');panel.id='billing-panel';
+  panel.setAttribute('aria-labelledby','billing-title');
+  const header=el('div','billing-dialog-header'),titleGroup=el('div'),title=el('h2',null,'Tính tiền buổi cầu');title.id='billing-title';
+  titleGroup.append(el('p','eyebrow','CHI PHÍ BUỔI CẦU'),title);
+  const close=button('×',()=>panel.close(),'modal-close');close.setAttribute('aria-label','Đóng tính tiền');close.autofocus=true;
+  header.append(titleGroup,close);
   const description=el('p','panel-note','Tiền sân chia theo giờ · Cầu và trà chia đều mọi người. Nhập tiền bằng đồng.');
   const fields=el('fieldset','cost-fields');
   const costs=el('div','cost-inputs'),hours=el('div','hours-grid');
@@ -21,15 +23,18 @@ export function createBillingController({date,root,onAllocationsChange}) {
   const saveButton=button('Lưu',()=>save(false));
   const calculateButton=button('Lưu & tính tiền',()=>save(true),'button button-primary');
   controls.append(saveButton,calculateButton);
-  fields.append(costs,el('h3',null,'Giờ chơi của từng người'),el('p','panel-note','Bước 0,5 giờ. Người mới mặc định 2 giờ.'),hours,summary,controls);
+  fields.append(costs,el('h3',null,'Giờ chơi của từng người'),el('p','panel-note','Bước 0,5 giờ. Người mới mặc định 2 giờ.'),hours,summary);
   const message=el('p','panel-status','Đang tải chi phí…');message.id='billing-status';message.setAttribute('role','status');
+  const modalMessage=el('p','panel-status');modalMessage.id='billing-modal-status';modalMessage.setAttribute('role','status');
   const loadNew=button('Tải bản mới',()=>{if(remote!==null){apply(remote);remote=null;error='';render();}});
   loadNew.hidden=true;
   const retry=button('Kết nối lại chi phí',()=>{stop();start();});retry.hidden=true;
-  panel.append(description,fields,message,loadNew,retry);
-  root.append(toggle,panel);
-  // Always expose connection state, including when the cost editor is collapsed.
-  root.append(message);
+  const body=el('div','billing-modal-body'),footer=el('div','billing-modal-footer');
+  body.append(description,fields);footer.append(modalMessage,loadNew,retry,controls);panel.append(header,body,footer);
+  root.append(toggle,panel,message);
+  const access=createBillingAccess({root,onUnlock:()=>panel.showModal()});
+  closeOnBackdrop(panel);
+  panel.addEventListener('close',()=>{if(!access.isOpen())toggle.focus({preventScroll:true});});
 
   function state() {
     if(error) return 'error';
@@ -49,6 +54,7 @@ export function createBillingController({date,root,onAllocationsChange}) {
       current==='loading'?'Đang tải chi phí…':current==='stale'?'Danh sách đã thay đổi — Cần tính lại.':current==='dirty'?'Có thay đổi chưa lưu.':
       current==='calculated'?`Đã tính và lưu · Tổng thu ${formatMoney(saved.result.total)}`:saved?'Đã lưu bản nháp · Chưa tính tiền.':'Chưa có chi phí đã lưu.');
     message.textContent=text;message.classList.toggle('is-error',Boolean(error));
+    modalMessage.textContent=text;modalMessage.classList.toggle('is-error',Boolean(error));
     fields.disabled=busy;
     saveButton.disabled=busy||!loaded||!peopleReady;
     calculateButton.disabled=saveButton.disabled||!participants.length;
@@ -58,14 +64,14 @@ export function createBillingController({date,root,onAllocationsChange}) {
   }
   function changed() { dirty=true;error='';refresh(); }
   function renderCosts() {
-    costs.replaceChildren(numberField('Tiền sân (đ)',input.courtFee,value=>{input.courtFee=value;changed();}));
+    costs.replaceChildren(moneyField('Tiền sân (đ)',input.courtFee,value=>{input.courtFee=value;changed();}));
     const shuttleList=el('div','shuttle-list');
     input.shuttles.forEach((line,index)=>{
       const row=el('div','shuttle-row');
       const label=el('label','cost-field','Tên loại cầu '+(index+1)),name=el('input');
       name.type='text';name.value=line.label;name.maxLength=60;name.addEventListener('input',()=>{line.label=name.value;changed();});label.append(name);
       const quantity=numberField(`Số lượng cầu ${index+1}`,line.quantity,value=>{line.quantity=value;updateLine();changed();});
-      const price=numberField(`Giá cầu ${index+1} (đ)`,line.unitPrice,value=>{line.unitPrice=value;updateLine();changed();},{nullable:true});
+      const price=moneyField(`Giá cầu ${index+1} (đ)`,line.unitPrice,value=>{line.unitPrice=value;updateLine();changed();},{nullable:true});
       const total=el('output','line-total');
       const updateLine=()=>{const value=line.quantity===0?0:line.unitPrice===null?NaN:line.quantity*line.unitPrice;total.textContent=Number.isSafeInteger(value)&&value>=0?formatMoney(value):'Chưa đủ dữ liệu';};updateLine();
       const remove=button(`Bỏ loại cầu ${index+1}`,()=>{input.shuttles.splice(index,1);changed();renderCosts();costs.querySelector('.add-shuttle').focus();},'button remove-shuttle');
@@ -77,7 +83,7 @@ export function createBillingController({date,root,onAllocationsChange}) {
     },'button button-light add-shuttle');
     const tea=el('div','tea-row');
     tea.append(numberField('Số bình trà',input.tea.quantity,value=>{input.tea.quantity=value;changed();}),
-      numberField('Giá mỗi bình (đ)',input.tea.unitPrice,value=>{input.tea.unitPrice=value;changed();},{nullable:true}));
+      moneyField('Giá mỗi bình (đ)',input.tea.unitPrice,value=>{input.tea.unitPrice=value;changed();},{nullable:true}));
     costs.append(el('h3',null,'Cầu theo từng đơn giá'),shuttleList,add,el('h3',null,'Trà đá'),tea);
   }
   function renderHours() {
@@ -102,10 +108,9 @@ export function createBillingController({date,root,onAllocationsChange}) {
     input=document?.input?structuredClone(document.input):createBillingInput(participants);
     if(peopleReady)input=reconcileHours(input,participants);
     stale=Boolean(document && document.sourceFingerprint!==rosterFingerprint(participants));
-    if(document){panel.hidden=false;toggle.setAttribute('aria-expanded','true');}
   }
   async function save(calculate) {
-    if(busy||!loaded||!peopleReady) return;
+    if(!panel.open||busy||!loaded||!peopleReady) return;
     error='';
     try {
       calculateTotals(input);
@@ -142,7 +147,7 @@ export function createBillingController({date,root,onAllocationsChange}) {
       },e=>{if(active&&token===generation){error=dataError(e);loaded=false;refresh();}});
     }catch(e){if(active&&token===generation){error=dataError(e);refresh();}}
   }
-  function stop(){active=false;++generation;unsubscribe?.();unsubscribe=undefined;}
+  function stop(){active=false;++generation;unsubscribe?.();unsubscribe=undefined;access.close();if(panel.open)panel.close();}
   function setParticipants(next,{ready}) {
     const changedRoster=rosterFingerprint(next)!==rosterFingerprint(participants);
     participants=next;peopleReady=ready;

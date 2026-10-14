@@ -9,8 +9,7 @@ const safe = value => {
   return Number(value);
 };
 export function createBillingInput(participants) {
-  return { courtFee:220000, shuttles:[{id:'shuttle-1',label:'Cầu loại 1',unitPrice:27000,quantity:0},
-    {id:'shuttle-2',label:'Cầu loại 2',unitPrice:25000,quantity:0}], tea:{quantity:0,unitPrice:null},
+  return { courtFee:220000, shuttles:[{id:'shuttle-1',label:'Cầu loại 1',unitPrice:27000,quantity:0}], tea:{quantity:0,unitPrice:null},
     hours:participants.map(p=>({id:p.id,version:p.version,halfHours:4})) };
 }
 export function reconcileHours(input, participants) {

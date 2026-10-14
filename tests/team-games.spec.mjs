@@ -23,15 +23,23 @@ test('wheel draws everyone once, saves teams and matchups, reload keeps complete
   await page.emulateMedia({reducedMotion:'reduce'});
   await open(page,'2026-12-06');
   await page.getByRole('button',{name:'Vòng quay',exact:true}).click();
+  await expect(page.locator('.wheel-winner')).toHaveCount(0);
+  await expect(page.locator('.wheel-stage').getByRole('button',{name:'Quay',exact:true})).toHaveCount(1);
+  await expect(page.locator('.panel-actions').getByRole('button',{name:'Quay',exact:true})).toHaveCount(0);
+  await expect(page.locator('.games-heading').getByRole('button',{name:'Bắt đầu lại',exact:true})).toHaveText('↻');
+  const centered=await page.locator('.wheel-stage').evaluate(stage=>{
+    const rect=stage.getBoundingClientRect(),button=stage.querySelector('button').getBoundingClientRect();
+    return Math.abs(rect.x+rect.width/2-button.x-button.width/2)<2&&Math.abs(rect.y+rect.height/2-button.y-button.height/2)<2;
+  });
+  expect(centered).toBe(true);
   for(let i=0;i<5;i++){
     await page.getByRole('button',{name:'Quay',exact:true}).click();
     await expect(page.locator('#draw-order li')).toHaveCount(i+1);
     if(i<4){
-      await expect(page.locator('#wheel-winner .avatar-trigger')).toBeVisible();
       await expect(page.locator('.game-team')).toHaveCount(Math.ceil((i+1)/2));
       await expect(page.locator('.team-pending-slot')).toHaveCount((i+1)%2);
       if(i===0){
-        await page.locator('#wheel-winner .avatar-trigger').click();
+        await page.locator('.game-team .avatar-trigger').first().click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await page.keyboard.press('Escape');
         await expect(page.getByRole('dialog')).toBeHidden();
@@ -62,7 +70,7 @@ test('wheel draws everyone once, saves teams and matchups, reload keeps complete
   await page.getByRole('button',{name:'Bắt đầu lại'}).click();
   await expect(page.locator('.wheel-stage')).toBeVisible();
   await expect(page.locator('.game-team')).toHaveCount(0);
-  await expect(page.locator('#wheel-winner')).toBeHidden();
+  await expect(page.locator('.wheel-winner')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Quay',exact:true})).toBeEnabled();
 });
 test('mixed animation makes maximal male-female teams and keeps same-gender leftovers',async({page})=>{

@@ -24,23 +24,25 @@ export function createTeamGamesController({date,root}) {
   // Clip the rotating square canvas inside a disc; keep the pointer outside it.
   const disc=el('div','wheel-disc');disc.append(canvas);wheel.append(disc,pointer);
   const shuffleStage=el('div','shuffle-stage');shuffleStage.setAttribute('aria-hidden','true');
-  const winner=el('div','wheel-winner');winner.id='wheel-winner';winner.setAttribute('aria-live','polite');
   const drawList=el('ol','draw-order');drawList.id='draw-order';drawList.setAttribute('aria-label','Thứ tự người đã quay');
   const history=el('details','wheel-history');
   history.append(el('summary',null,'Xem thứ tự quay'),drawList);
   const controls=el('div','panel-actions');
-  const drawButton=button('Quay',draw,'button button-primary'),mixedButton=button('Chia đội',mix,'button button-primary');
+  const drawButton=button('Quay',draw,'button button-primary wheel-spin-button'),mixedButton=button('Chia đội',mix,'button button-primary');
+  wheel.append(drawButton);
   drawButton.addEventListener('keydown',event=>{
     if(event.repeat && ['Enter',' '].includes(event.key))event.preventDefault();
   });
-  const restart=button('Bắt đầu lại',()=>reset());
+  const restart=button('↻',()=>reset(),'button button-light game-restart');
+  restart.setAttribute('aria-label','Bắt đầu lại');restart.title='Bắt đầu lại';
+  const gamesHeading=el('div','games-heading');gamesHeading.append(heading,restart);
   const retrySave=button('Thử lưu kết quả',()=>persist());retrySave.hidden=true;
-  controls.append(drawButton,mixedButton,restart,retrySave);
+  controls.append(mixedButton,retrySave);
   const message=el('p','panel-status','Đang tải trò chơi…');message.id='games-status';message.setAttribute('role','status');
   const output=el('div','game-result');
   const loadNew=button('Tải kết quả mới',()=>{if(remote){apply(remote);remote=null;error='';render();drawWheel();}});loadNew.hidden=true;
   const retry=button('Kết nối lại trò chơi',()=>{stop();start();});retry.hidden=true;
-  panel.append(el('p','eyebrow','CHƠI VUI · CHIA ĐỘI'),heading,description,genderList,wheel,shuffleStage,winner,controls,output,history,loadNew,retry);
+  panel.append(el('p','eyebrow','CHƠI VUI · CHIA ĐỘI'),gamesHeading,description,genderList,wheel,shuffleStage,controls,output,history,loadNew,retry);
   root.append(tools,panel,message);
 
   function open(nextMode) {
@@ -53,7 +55,7 @@ export function createTeamGamesController({date,root}) {
   }
   function cancelAnimation(){++runToken;animation?.cancel();animation=undefined;animating=false;shuffleStage.classList.remove('is-shuffling');}
   function reset(markLocal=true) {
-    cancelAnimation();session=null;order=[];result=null;local=markLocal;stale=false;error='';winner.textContent='';angle=0;
+    cancelAnimation();session=null;order=[];result=null;local=markLocal;stale=false;error='';angle=0;
     history.open=false;
     overrides=overrides.filter(o=>participants.some(p=>p.id===o.id&&p.version===o.version));
     render();drawWheel();
@@ -72,6 +74,7 @@ export function createTeamGamesController({date,root}) {
     mixedButton.disabled=blocked||!loaded||stale||Boolean(result)||resolved().some(p=>!p.gender);
     restart.disabled=busy||animating||!peopleReady||!participants.length;
     retrySave.hidden=!(error&&result&&local&&!stale);retrySave.disabled=busy||animating||!loaded;
+    controls.hidden=mode==='wheel'&&retrySave.hidden;
     loadNew.hidden=!remote;loadNew.disabled=busy||animating;
     retry.hidden=!error||loaded;retry.disabled=busy;
     for(const select of genderList.querySelectorAll('select'))select.disabled=busy||animating;
@@ -86,7 +89,6 @@ export function createTeamGamesController({date,root}) {
     const completed=mode==='wheel'&&Boolean(result);
     wheel.hidden=mode!=='wheel'||completed;
     drawButton.hidden=mode!=='wheel'||completed;
-    winner.hidden=mode!=='wheel'||completed||!order.length;
     history.hidden=mode!=='wheel'||!order.length;
     panel.classList.toggle('is-wheel-complete',completed);
   }
@@ -131,15 +133,6 @@ export function createTeamGamesController({date,root}) {
       const person=people.find(p=>p.id===id);
       const row=el('li',null,`Đội ${Math.floor(index/2)+1} · ${person?.name??id}`);row.dataset.personId=id;return row;
     }));
-    winner.replaceChildren();
-    const latest=people.find(p=>p.id===order.at(-1));
-    if(latest){
-      winner.dataset.personId=latest.id;
-      const info=el('div','wheel-winner-info');
-      info.append(el('span','winner-caption','VỪA ĐƯỢC CHỌN'),el('strong','winner-name',latest.name),
-        el('span','winner-team-note',`Đội ${Math.ceil(order.length/2)} · ${order.length%2&&!result?'Chờ đồng đội':order.length%2?'Đội riêng':'Đã đủ hai người'}`));
-      winner.append(createAvatarButton(latest.avatar,latest.name,72),info);
-    }else delete winner.dataset.personId;
     updateWheelPresentation();
     output.replaceChildren();
     if(!result && (mode!=='wheel'||!order.length))return;
@@ -166,6 +159,10 @@ export function createTeamGamesController({date,root}) {
   }
   function render() {
     heading.textContent=mode==='wheel'?'Vòng quay may mắn':'Chia đội ngẫu nhiên';
+    restart.textContent=mode==='wheel'?'↻':'Bắt đầu lại';
+    restart.classList.toggle('game-restart',mode==='wheel');
+    if(mode==='wheel'&&restart.parentElement!==gamesHeading)gamesHeading.append(restart);
+    else if(mode!=='wheel'&&restart.parentElement!==controls)controls.insertBefore(restart,retrySave);
     description.textContent=mode==='wheel'?'Quay từng người, hai lượt liên tiếp thành một đội. Người lẻ vẫn có đội riêng.':
       'Ưu tiên nam – nữ tối đa. Người dư ghép cùng giới, người lẻ thành đội riêng.';
     shuffleStage.hidden=mode!=='mixed';mixedButton.hidden=mode!=='mixed';
@@ -268,7 +265,7 @@ export function createTeamGamesController({date,root}) {
     const wasReady=peopleReady;
     const changed=fingerprint(next)!==fingerprint(participants);participants=next;peopleReady=ready;
     if(changed && session && session.sourceFingerprint!==fingerprint(next)){
-      cancelAnimation();session=null;order=[];result=null;winner.textContent='';stale=true;error='';
+      cancelAnimation();session=null;order=[];result=null;stale=true;error='';
     }else if(result && ready && (changed||!wasReady))stale=!isGameCurrent(result,next);
     if(changed||ready!==wasReady){render();if(!animating)drawWheel();}else refresh();
   }

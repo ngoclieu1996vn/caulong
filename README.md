@@ -75,7 +75,7 @@ Trong danh sách đã check-in, bấm **Hủy check-in** cạnh người cần h
 
 Kiểm tra ngày và tên nằm ở JavaScript của ứng dụng. Firestore Rules không kiểm tra dữ liệu đầu vào; client riêng có thể tạo document với nội dung tùy ý trong `checkins`.
 
-## Giới hạn ứng dụng không đăng nhập
+## Giới hạn quyền truy cập Firestore
 
 Ai mở website cũng có thể đọc danh sách và check-in thay thành viên. Không thể chứng minh người bấm chính là chủ avatar, không chống spam khách tuyệt đối. Tối ưu query theo tháng không phải hạn chế quyền đọc; người biết cấu hình có thể đọc collection được public read. Không lưu thông tin nhạy cảm trong danh sách.
 
@@ -83,7 +83,11 @@ Rules cho phép đọc/thêm mới/xóa `checkins`, chặn sửa check-in; cho p
 
 ## Tính tiền theo ngày
 
-Trên trang chi tiết, bấm **Tính tiền**. Tiền sân mặc định 220.000đ; có sẵn hai dòng cầu 27.000đ và 25.000đ với số lượng 0. Mỗi loại cầu có nhãn, số lượng, đơn giá và thành tiền; **+ Thêm loại cầu** để nhập thêm giá khác. Trà có số bình (mặc định 0) và giá/bình. Có số lượng thì cần nhập giá, cho phép 0đ. Các ô tiền dùng đơn vị đồng nguyên, không nhập `220k`.
+Trên trang chi tiết, bấm **Tính tiền**, nhập Username và Password để mở modal chi phí. Tài khoản giao diện được cấu hình trong `js/billing-access.js` theo thông tin người dùng cung cấp. Mỗi lần mở cần nhập lại; không lưu phiên đăng nhập. Đây là khóa giao diện frontend, không phải Firebase Authentication: mật khẩu nằm trong mã nguồn công khai, quyền Firestore vẫn do Rules quyết định.
+
+Modal có nút ×, đóng bằng Escape hoặc bấm nền bên ngoài; khi đóng/mở lại vẫn giữ input chưa lưu. Form cuộn bên trong, các nút Lưu/Lưu & tính tiền ở cuối modal luôn dễ truy cập trên điện thoại. Avatar trong modal vẫn mở ảnh lớn.
+
+Tiền sân mặc định 220.000đ; có sẵn một dòng cầu 27.000đ với số lượng 0. Mỗi loại cầu có nhãn, số lượng, đơn giá và thành tiền; **+ Thêm loại cầu** để nhập thêm giá khác. Trà có số bình (mặc định 0) và giá/bình. Có số lượng thì cần nhập giá, cho phép 0đ. Các ô tiền tự tách hàng nghìn (`220.000`, `27.000`) và có đơn vị `đ`; dữ liệu vẫn lưu bằng số đồng nguyên. Có thể nhập chữ số hoặc dán giá đã định dạng, không nhập `220k`. Những ngày đã lưu nhiều loại cầu tiếp tục giữ đầy đủ các dòng cũ.
 
 Mỗi người check-in có avatar và giờ mặc định 2h; nút −/+ thay đổi 0,5h, từ 0 đến 24h. Bấm avatar vẫn mở ảnh lớn. Người vừa check-in lại sau khi hủy có phiên bản mới và giờ trở về 2h.
 
@@ -93,14 +97,14 @@ Tiền sân và phần cầu/trà được chia riêng bằng số nguyên; các
 
 - **Lưu** lưu bản nháp, chưa có số tiền phải trả.
 - **Lưu & tính tiền** lưu cả kết quả; danh sách check-in hiện tiền và giờ từng người sau xác nhận server.
-- Sửa input/giờ ẩn tiền cũ và báo chưa lưu. Thêm/hủy/check-in lại báo **Cần tính lại**. Mở lại ngày có chi phí đã lưu sẽ tự hiển thị phần chi phí.
+- Sửa input/giờ ẩn tiền cũ và báo chưa lưu. Thêm/hủy/check-in lại báo **Cần tính lại**. Mở lại ngày sẽ tải chi phí đã lưu; bấm Tính tiền và nhập tài khoản để xem/sửa trong modal.
 - Nếu thiết bị khác sửa khi bạn đang nhập, form giữ nguyên; dùng **Tải bản mới** để nhận dữ liệu server. Lưu dùng revision transaction, từ chối ghi đè bản mới hơn.
 
 ## Vòng quay và chia đội
 
 Hai nút **Vòng quay** và **Chia đội ngẫu nhiên** nằm cạnh danh sách check-in. Vòng quay chọn một người mỗi lượt, không lặp; hai người liên tiếp thành một đội. Người lẻ thành đội riêng. Nút Quay khóa khi có animation; chế độ giảm chuyển động vẫn chọn đúng một người.
 
-Sau mỗi lượt quay, avatar lớn và tên người vừa được chọn xuất hiện cùng các thẻ đội đang ghép. Đội chưa đủ hai người có ô **Chờ đồng đội**. Khi quay hết, vòng tròn tự thu gọn để hiển thị bảng đội và cặp đấu; **Xem thứ tự quay** mở lịch sử, **Bắt đầu lại** mở vòng quay mới. Tải lại ngày vẫn hiển thị kết quả đã lưu theo bố cục gọn.
+Bấm **Quay** ngay tại tâm vòng tròn để chọn người; các thẻ đội bên dưới cập nhật sau mỗi lượt. Đội chưa đủ hai người có ô **Chờ đồng đội**. Khi quay hết, vòng tròn tự thu gọn để hiển thị bảng đội và cặp đấu; **Xem thứ tự quay** mở lịch sử, icon **↻** cạnh tiêu đề **Vòng quay may mắn** mở vòng quay mới (tooltip: Bắt đầu lại). Tải lại ngày vẫn hiển thị kết quả đã lưu theo bố cục gọn.
 
 Chia đội ngẫu nhiên ghép nam–nữ tối đa, sau đó ghép người dư cùng giới, người lẻ thành đội riêng. Khách cũ thiếu giới tính được chọn ngay trong phần trò chơi; lựa chọn lưu cùng kết quả, không sửa check-in cũ. Vòng quay không yêu cầu giới tính.
 
@@ -165,7 +169,7 @@ npx firebase emulators:start --only firestore --project demo-calendar-checkin
 
 Kết quả đã chạy ngày 14/10/2026:
 
-**71/71 kiểm thử đã qua:** 19 unit, 14 Firestore Rules, 33 Chromium và 5 kiểm thử avatar; kiểm tra syntax tất cả module JS cũng đã qua. Có một lượt review độc lập và kiểm thử hồi quy cho các lỗi tìm được.
+**74/74 kiểm thử đã qua:** 20 unit, 14 Firestore Rules, 35 Chromium và 5 kiểm thử avatar; kiểm tra syntax tất cả module JS cũng đã qua. Có một lượt review độc lập cho phần tính tiền/trò chơi ban đầu; phần modal và nhập tiền đã kiểm thử đăng nhập sai/đúng, đóng/mở lại, lưu dữ liệu, định dạng và sửa giữa chuỗi.
 
 - Unit tests: ngày Việt Nam, ngày nhuận, ngày sai, khoảng tháng, lịch thứ Hai, tên khách, giờ hiển thị; định danh theo phiên bản, chia tiền nguyên đồng, giờ 0/khác nhau, nhiều loại cầu, ghép đội và góc dừng vòng quay.
 - Firestore Emulator tests kiểm tra đọc/thêm mới không phụ thuộc tên, ID hoặc cấu trúc dữ liệu; cho phép xóa và check-in lại, giữ chặn ghi trùng/đồng thời, update và collection khác.
