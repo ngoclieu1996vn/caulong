@@ -164,10 +164,6 @@ export function createTeamGamesController({date,root}) {
   }
   function render() {
     heading.textContent=mode==='wheel'?'Vòng quay may mắn':'Chia đội ngẫu nhiên';
-    restart.textContent=mode==='wheel'?'↻':'Bắt đầu lại';
-    restart.classList.toggle('game-restart',mode==='wheel');
-    if(mode==='wheel'&&restart.parentElement!==gamesHeading)gamesHeading.append(restart);
-    else if(mode!=='wheel'&&restart.parentElement!==controls)controls.insertBefore(restart,retrySave);
     description.textContent=mode==='wheel'?'Quay từng người, hai lượt liên tiếp thành một đội. Người lẻ vẫn có đội riêng.':
       'Ưu tiên nam – nữ tối đa. Người dư ghép cùng giới, người lẻ thành đội riêng.';
     shuffleStage.hidden=mode!=='mixed';mixedButton.hidden=mode!=='mixed';
