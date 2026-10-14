@@ -67,6 +67,10 @@ export function createTeamGamesController({date,root}) {
     error='';
   }
   function refresh() {
+    for(const [icon,selectedMode] of [[wheelIcon,'wheel'],[mixedIcon,'mixed']]){
+      const selected=!panel.hidden&&mode===selectedMode;
+      icon.classList.toggle('is-active',selected);icon.setAttribute('aria-pressed',String(selected));icon.setAttribute('aria-expanded',String(selected));
+    }
     updateWheelPresentation();
     const blocked=!peopleReady||!participants.length||busy||animating;
     wheelIcon.disabled=blocked;mixedIcon.disabled=blocked;

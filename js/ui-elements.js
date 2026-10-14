@@ -9,7 +9,7 @@ export function el(tag,className,text) {
 export function button(text,action,className='button button-light') {
   const node=el('button',className,text);node.type='button';node.addEventListener('click',action);return node;
 }
-export function closeOnBackdrop(dialog){
+export function closeOnBackdrop(dialog,canClose=()=>true){
   let startedOutside=false;
   const outside=event=>{
     const rect=dialog.getBoundingClientRect();
@@ -19,7 +19,7 @@ export function closeOnBackdrop(dialog){
   dialog.addEventListener('pointercancel',()=>{startedOutside=false;});
   dialog.addEventListener('click',event=>{
     const dismiss=startedOutside&&event.target===dialog&&outside(event);startedOutside=false;
-    if(dismiss)dialog.close();
+    if(dismiss&&canClose())dialog.close();
   });
 }
 export function numberField(label,value,onChange,{nullable=false,max}={}) {

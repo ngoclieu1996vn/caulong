@@ -83,9 +83,9 @@ Rules cho phép đọc/thêm mới/xóa `checkins`, chặn sửa check-in; cho p
 
 ## Tính tiền theo ngày
 
-Trên trang chi tiết, bấm **Tính tiền**, nhập Username và Password để mở modal chi phí. Tài khoản giao diện được cấu hình trong `js/billing-access.js` theo thông tin người dùng cung cấp. Mỗi lần mở cần nhập lại; không lưu phiên đăng nhập. Đây là khóa giao diện frontend, không phải Firebase Authentication: mật khẩu nằm trong mã nguồn công khai, quyền Firestore vẫn do Rules quyết định.
+Trên trang chi tiết, bấm **Tính tiền**, nhập Username và Password để mở modal chi phí. Tài khoản giao diện được cấu hình trong `js/billing-access.js` theo thông tin người dùng cung cấp. Sau khi đăng nhập thành công, username và password được lưu trong localStorage để tự điền lần sau; mỗi lần mở vẫn cần nhấn Đăng nhập. Nếu trình duyệt chặn storage, đăng nhập vẫn dùng được nhưng không nhớ tài khoản. Đây là khóa giao diện frontend, không phải Firebase Authentication: mật khẩu nằm trong mã nguồn công khai và có thể đọc từ localStorage, quyền Firestore vẫn do Rules quyết định.
 
-Modal có nút ×, đóng bằng Escape hoặc bấm nền bên ngoài; khi đóng/mở lại vẫn giữ input chưa lưu. Form cuộn bên trong, các nút Lưu/Lưu & tính tiền ở cuối modal luôn dễ truy cập trên điện thoại. Avatar trong modal vẫn mở ảnh lớn.
+Modal có nút ×, đóng bằng Escape hoặc bấm nền bên ngoài; khi đóng/mở lại vẫn giữ input chưa lưu. Form cuộn bên trong, các nút Lưu/Tính tiền ở cuối modal luôn dễ truy cập trên điện thoại. Khi gửi, nút hiện vòng xoay và trạng thái Đang lưu/Đang tính tiền; khóa form và thao tác đóng modal trong lúc chờ để tránh gửi lặp. Thành công mới tự đóng modal; lỗi thì giữ dữ liệu và mở nút thử lại. Avatar trong modal vẫn mở ảnh lớn.
 
 Tiền sân mặc định 220.000đ; có sẵn một dòng cầu 27.000đ với số lượng 0. Mỗi loại cầu có nhãn, số lượng, đơn giá và thành tiền; **+ Thêm loại cầu** để nhập thêm giá khác. Trà mặc định 0 bình, giá 20.000đ/bình. Có số lượng thì cần nhập giá, cho phép 0đ. Các ô tiền tự tách hàng nghìn (`220.000`, `27.000`) và có đơn vị `đ`; dữ liệu vẫn lưu bằng số đồng nguyên. Có thể nhập chữ số hoặc dán giá đã định dạng, không nhập `220k`. Những ngày đã lưu chi phí tiếp tục giữ các dòng cầu và giá trà đã nhập.
 
@@ -95,14 +95,15 @@ Mỗi người check-in có avatar và giờ mặc định 2h; nút −/+ thay �
 
 Tiền sân và phần cầu/trà được chia riêng bằng số nguyên; các đồng dư phân theo phần dư giảm dần, cùng phần dư dùng ID check-in. Tổng tiền mọi người luôn bằng tổng chi. Người 0h vẫn chia đều cầu/trà. Phải có ít nhất một người để tính; tổng giờ phải lớn hơn 0 nếu tiền sân lớn hơn 0. Ví dụ tổng 319.000đ với giờ 2,2,1,1 cho các khoản 98.083đ, 98.083đ, 61.417đ, 61.417đ.
 
-- **Lưu** lưu bản nháp, chưa có số tiền phải trả.
-- **Lưu & tính tiền** lưu cả kết quả; danh sách check-in hiện tiền và giờ từng người sau xác nhận server.
+- **Lưu** lưu chi phí và giờ chơi, chưa có số tiền phải trả.
+- **Tính tiền** lưu cả kết quả; danh sách check-in hiện tiền và giờ từng người sau xác nhận server.
+- Dưới ngày/tháng hiển thị thông tin đã lưu: tổng số cầu, số bình trà, số người, giờ chơi cùng tiền sân và tổng chi phí. Nếu giờ của mọi người khác nhau thì hiện khoảng giờ nhỏ nhất–lớn nhất. Input chưa lưu không thay đổi phần tóm tắt này. Ngày đã tính có nhãn **✓ Đã tính tiền** và nút **Tính tiền lại**; danh sách thay đổi sẽ yêu cầu tính lại.
 - Sửa input/giờ ẩn tiền cũ và báo chưa lưu. Thêm/hủy/check-in lại báo **Cần tính lại**. Mở lại ngày sẽ tải chi phí đã lưu; bấm Tính tiền và nhập tài khoản để xem/sửa trong modal.
 - Nếu thiết bị khác sửa khi bạn đang nhập, form giữ nguyên; dùng **Tải bản mới** để nhận dữ liệu server. Lưu dùng revision transaction, từ chối ghi đè bản mới hơn.
 
 ## Vòng quay và chia đội
 
-Hai nút **Vòng quay** và **Chia đội ngẫu nhiên** nằm cạnh danh sách check-in. Vòng quay chọn một người mỗi lượt, không lặp; hai người liên tiếp thành một đội. Người lẻ thành đội riêng. Nút Quay khóa khi có animation; chế độ giảm chuyển động vẫn giữ đúng thứ tự chọn và ghép đội.
+Hai nút **Vòng quay** và **Chia đội ngẫu nhiên** nằm cạnh danh sách check-in. Chế độ đang mở có nền xanh đậm, chữ sáng và trạng thái `aria-pressed`; khi tải lại kết quả đã lưu, chế độ được chọn tương ứng. Vòng quay chọn một người mỗi lượt, không lặp; hai người liên tiếp thành một đội. Người lẻ thành đội riêng. Nút Quay khóa khi có animation; chế độ giảm chuyển động vẫn giữ đúng thứ tự chọn và ghép đội.
 
 Khi còn một người sau lượt quay, ứng dụng tự thêm người đó và hoàn tất đội/kết quả, không cần nhấn Quay thêm. Ví dụ 5 người chỉ cần 4 lượt quay; 2 người chỉ cần 1 lượt. Nếu danh sách ngay từ đầu có một người, bấm Quay sẽ tạo đội ngay, không chạy animation.
 

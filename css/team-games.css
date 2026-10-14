@@ -1,5 +1,8 @@
 .game-tools .button { display:flex; align-items:center; gap:9px; min-height:44px; font-size:21px; border:1px solid #d6e0d4; background:#f3f6ed; }
 .tool-caption { font-size:12px; }
+.game-tools .button.is-active { color:#fff; background:#245c45; border-color:#245c45; box-shadow:0 0 0 3px #245c451c; }
+.game-tools .button.is-active .tool-caption { font-weight:700; }
+.game-tools .button:focus-visible { outline:2px solid #ad793e; outline-offset:4px; }
 .games-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .games-heading h2 { min-width:0; }
 .game-restart { flex-shrink:0; width:42px; height:42px; min-height:42px; padding:0; border-radius:50%; font-size:25px; line-height:1; color:#245c45; }

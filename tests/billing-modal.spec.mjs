@@ -26,7 +26,7 @@ test('billing requires credentials on each opening, closes with Escape and prese
   await expect(page.getByLabel('Tiền sân (đ)')).toHaveValue('230.000');
   await closeBilling(page);
   await page.locator('#billing-toggle').click();
-  await expect(page.getByLabel('Password',{exact:true})).toHaveValue('');
+  await expect(page.getByLabel('Password',{exact:true})).toHaveValue('lieuvippro');
   await page.keyboard.press('Escape');
   await expect(page.locator('#billing-login')).toBeHidden();
 });
@@ -49,7 +49,7 @@ test('money inputs format mid-string edits, zero, blank and invalid values; mobi
   const box=await page.locator('#billing-panel').boundingBox();
   expect(box.width).toBeLessThanOrEqual(320);expect(box.height).toBeLessThanOrEqual(700);
   expect(await page.locator('#billing-panel').evaluate(dialog=>dialog.scrollWidth<=dialog.clientWidth)).toBe(true);
-  await expect(page.getByRole('button',{name:'Lưu & tính tiền'})).toBeInViewport();
+  await expect(page.locator('#billing-panel').getByRole('button',{name:'Tính tiền',exact:true})).toBeInViewport();
   await page.locator('#billing-panel').screenshot({path:'.playwright/billing-modal-mobile.png'});
   await closeBilling(page);
 });

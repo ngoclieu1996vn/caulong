@@ -3,10 +3,12 @@ import { buildParticipants, rosterFingerprint } from './participants.js';
 import { createAvatarButton } from './avatar-preview.js';
 import { el, button, numberField, moneyField, closeOnBackdrop, dataError } from './ui-elements.js';
 import { createBillingAccess } from './billing-access.js';
+import { renderBillingSummary } from './billing-summary.js';
 
-export function createBillingController({date,root,onAllocationsChange}) {
+export function createBillingController({date,root,summaryRoot,onAllocationsChange}) {
   let participants=[],peopleReady=false,loaded=false,active=false,generation=0,unsubscribe;
   let service,checkins,saved=null,remote=null,revision=0,input=createBillingInput([]),dirty=false,stale=false,busy=false,error='';
+  let savingCalculation=false;
   const toggle=button('Tính tiền',()=>{if(!panel.open)access.request();},'button button-primary');
   toggle.id='billing-toggle';toggle.setAttribute('aria-controls','billing-panel');toggle.setAttribute('aria-haspopup','dialog');
   const panel=el('dialog','day-panel billing-modal');panel.id='billing-panel';
@@ -21,7 +23,7 @@ export function createBillingController({date,root,onAllocationsChange}) {
   const summary=el('div','cost-summary');summary.id='billing-summary';summary.setAttribute('aria-live','polite');
   const controls=el('div','panel-actions');
   const saveButton=button('Lưu',()=>save(false));
-  const calculateButton=button('Lưu & tính tiền',()=>save(true),'button button-primary');
+  const calculateButton=button('Tính tiền',()=>save(true),'button button-primary');
   controls.append(saveButton,calculateButton);
   fields.append(costs,el('h3',null,'Giờ chơi của từng người'),el('p','panel-note','Bước 0,5 giờ. Người mới mặc định 2 giờ.'),hours,summary);
   const message=el('p','panel-status','Đang tải chi phí…');message.id='billing-status';message.setAttribute('role','status');
@@ -31,9 +33,12 @@ export function createBillingController({date,root,onAllocationsChange}) {
   const retry=button('Kết nối lại chi phí',()=>{stop();start();});retry.hidden=true;
   const body=el('div','billing-modal-body'),footer=el('div','billing-modal-footer');
   body.append(description,fields);footer.append(modalMessage,loadNew,retry,controls);panel.append(header,body,footer);
-  root.append(toggle,panel,message);
+  const toolbar=el('div','billing-toolbar'),completed=el('span','billing-completed');completed.id='billing-completed';completed.hidden=true;
+  const check=el('span','billing-completed-icon','✓');check.setAttribute('aria-hidden','true');completed.append(check,el('span',null,'Đã tính tiền'));
+  toolbar.append(completed,toggle);root.append(toolbar,panel,message);
   const access=createBillingAccess({root,onUnlock:()=>panel.showModal()});
-  closeOnBackdrop(panel);
+  closeOnBackdrop(panel,()=>!busy);
+  panel.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
   panel.addEventListener('close',()=>{if(!access.isOpen())toggle.focus({preventScroll:true});});
 
   function state() {
@@ -50,14 +55,24 @@ export function createBillingController({date,root,onAllocationsChange}) {
     ].map(([label,amount])=>{const row=el('div');row.append(el('span',null,label),el('strong',null,formatMoney(amount)));return row;}));}
     catch(e){summary.textContent=e.message;}
     const current=state();
-    const text=error || (busy?'Đang lưu, chờ Firebase xác nhận…':remote?'Dữ liệu đã được sửa từ thiết bị khác. Bạn có thể tải bản mới.':
+    const text=error || (busy?(savingCalculation?'Đang tính tiền, chờ Firebase xác nhận…':'Đang lưu, chờ Firebase xác nhận…'):remote?'Dữ liệu đã được sửa từ thiết bị khác. Bạn có thể tải bản mới.':
       current==='loading'?'Đang tải chi phí…':current==='stale'?'Danh sách đã thay đổi — Cần tính lại.':current==='dirty'?'Có thay đổi chưa lưu.':
-      current==='calculated'?`Đã tính và lưu · Tổng thu ${formatMoney(saved.result.total)}`:saved?'Đã lưu bản nháp · Chưa tính tiền.':'Chưa có chi phí đã lưu.');
+      current==='calculated'?`Đã tính tiền · Tổng thu ${formatMoney(saved.result.total)}`:saved?'Đã lưu chi phí.':'Chưa có chi phí đã lưu.');
     message.textContent=text;message.classList.toggle('is-error',Boolean(error));
     modalMessage.textContent=text;modalMessage.classList.toggle('is-error',Boolean(error));
     fields.disabled=busy;
     saveButton.disabled=busy||!loaded||!peopleReady;
     calculateButton.disabled=saveButton.disabled||!participants.length;
+    for(const [control,label,isWorking] of [[saveButton,'Lưu',busy&&!savingCalculation],[calculateButton,'Tính tiền',busy&&savingCalculation]]){
+      control.replaceChildren();control.classList.toggle('is-loading',isWorking);
+      if(isWorking){const spinner=el('span','button-spinner');spinner.setAttribute('aria-hidden','true');control.append(spinner);}
+      control.append(document.createTextNode(isWorking?(savingCalculation?'Đang tính tiền…':'Đang lưu…'):label));
+    }
+    panel.setAttribute('aria-busy',String(busy));close.disabled=busy;toggle.disabled=busy;
+    completed.hidden=current!=='calculated';
+    toggle.textContent=current==='calculated'?'Tính tiền lại':'Tính tiền';
+    toggle.classList.toggle('button-primary',current!=='calculated');toggle.classList.toggle('button-light',current==='calculated');
+    renderBillingSummary(summaryRoot,saved);
     loadNew.hidden=!remote;loadNew.disabled=busy;
     retry.hidden=!error||loaded;retry.disabled=busy;
     onAllocationsChange({status:current,allocations:current==='calculated'?saved.result.allocations:[]});
@@ -88,7 +103,7 @@ export function createBillingController({date,root,onAllocationsChange}) {
   }
   function renderHours() {
     hours.replaceChildren();
-    if(!participants.length) hours.append(el('p','panel-note','Chưa có người check-in. Bạn vẫn có thể lưu chi phí nháp.'));
+    if(!participants.length) hours.append(el('p','panel-note','Chưa có người check-in. Bạn vẫn có thể lưu chi phí.'));
     for(const person of participants) {
       const row=input.hours.find(h=>h.id===person.id && h.version===person.version);
       const card=el('div','hours-card');card.dataset.personId=person.id;
@@ -118,7 +133,7 @@ export function createBillingController({date,root,onAllocationsChange}) {
       for(const h of input.hours) if(!Number.isInteger(h.halfHours)||h.halfHours<0||h.halfHours>48) throw new Error('Giờ chơi phải từ 0 đến 24 giờ.');
       if(calculate) calculateBill(input,participants);
     } catch(e){error=dataError(e);refresh();return;}
-    busy=true;refresh();
+    busy=true;savingCalculation=calculate;refresh();
     const expected=revision,sourceFingerprint=rosterFingerprint(participants),snapshot=structuredClone(participants),data=structuredClone(input);
     try {
       if(!navigator.onLine) throw new Error('Bạn đang ngoại tuyến. Dữ liệu chưa lưu.');
@@ -130,6 +145,7 @@ export function createBillingController({date,root,onAllocationsChange}) {
       const newer=remote && remote.revision>next ? remote : null;
       apply({...payload,revision:next});remote=newer;
       if(newer) error='Dữ liệu đã được sửa từ thiết bị khác. Hãy tải bản mới.';
+      if(!newer&&panel.open)panel.close();
     }catch(e){error=dataError(e);}
     finally{busy=false;render();}
   }

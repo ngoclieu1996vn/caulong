@@ -396,7 +396,7 @@ async function boot() {
   $("#back-link").href =
     `./index.html?month=${date.slice(0, 7)}${emulatorSuffix}`;
   buildCards();
-  billing=createBillingController({date,root:$('#billing-root'),onAllocationsChange:result=>{allocations=result.allocations;renderAmounts();}});
+  billing=createBillingController({date,root:$('#billing-root'),summaryRoot:$('#day-summary'),onAllocationsChange:result=>{allocations=result.allocations;renderAmounts();}});
   billing.start();
   games=createTeamGamesController({date,root:$('#games-root')});games.start();
   $("#guest-toggle").addEventListener("click", () => {

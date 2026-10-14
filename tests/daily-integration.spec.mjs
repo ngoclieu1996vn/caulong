@@ -15,9 +15,9 @@ async function open(page,date){await page.goto(`detail.html?date=${date}&emulato
 test('billing and games stay independent, roster changes invalidate both',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await open(page,'2026-12-12');
   await openBilling(page);
-  await page.getByRole('button',{name:'Lưu & tính tiền'}).click();
+  await page.locator('#billing-panel').getByRole('button',{name:'Tính tiền',exact:true}).click();
   await expect(page.locator('.attendee-amount')).toHaveCount(2);
-  await closeBilling(page);
+  await expect(page.locator('#billing-panel')).toBeHidden();
   await page.getByRole('button',{name:'Chia đội ngẫu nhiên',exact:true}).click();
   await page.getByRole('button',{name:'Chia đội',exact:true}).click();
   await expect(page.locator('#games-status')).toContainText('Đã lưu');
@@ -25,11 +25,12 @@ test('billing and games stay independent, roster changes invalidate both',async(
   await openBilling(page);
   await page.getByLabel('Tiền sân (đ)').fill('200000');
   await page.getByRole('button',{name:'Lưu',exact:true}).click();
-  await expect(page.locator('#billing-status')).toContainText('Đã lưu bản nháp');
+  await expect(page.locator('#billing-status')).toContainText('Đã lưu chi phí');
   await expect(page.locator('.game-team')).toHaveCount(1);
-  await page.getByRole('button',{name:'Lưu & tính tiền'}).click();
+  await expect(page.locator('#billing-panel')).toBeHidden();await openBilling(page);
+  await page.locator('#billing-panel').getByRole('button',{name:'Tính tiền',exact:true}).click();
   await expect(page.locator('.attendee-amount')).toHaveCount(2);
-  await closeBilling(page);
+  await expect(page.locator('#billing-panel')).toBeHidden();
   await page.locator('.cancel-checkin').first().click();await page.locator('.delete-confirm').click();
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await expect(page.locator('#billing-status')).toContainText('Cần tính lại');
@@ -41,7 +42,7 @@ test('offline cost and game save preserve inputs and permit retry after reconnec
   await openBilling(page);
   await page.getByLabel('Tiền sân (đ)').fill('230000');
   await context.setOffline(true);
-  await page.getByRole('button',{name:'Lưu & tính tiền'}).click();
+  await page.locator('#billing-panel').getByRole('button',{name:'Tính tiền',exact:true}).click();
   await expect(page.locator('#billing-status')).toContainText('chưa lưu');
   await expect(page.getByLabel('Tiền sân (đ)')).toHaveValue('230.000');
   await expect(page.locator('.attendee-amount')).toHaveCount(0);
@@ -54,9 +55,9 @@ test('offline cost and game save preserve inputs and permit retry after reconnec
   await page.getByRole('button',{name:'Thử lưu kết quả'}).click();
   await expect(page.locator('#games-status')).toContainText('Đã lưu');
   await openBilling(page);
-  await page.getByRole('button',{name:'Lưu & tính tiền'}).click();
+  await page.locator('#billing-panel').getByRole('button',{name:'Tính tiền',exact:true}).click();
   await expect(page.locator('.attendee-amount')).toHaveCount(2);
-  await closeBilling(page);
+  await expect(page.locator('#billing-panel')).toBeHidden();
 });
 test('missing new Rules leaves check-in and cancellation available',async({page})=>{
   for(const [file,watch] of [['billing','watchBilling'],['team-games','watchTeamGame']])

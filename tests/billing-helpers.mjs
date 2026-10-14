@@ -1,6 +1,6 @@
 import {expect} from '@playwright/test';
 export async function openBilling(page){
-  await page.getByRole('button',{name:'Tính tiền',exact:true}).click();
+  await page.locator('#billing-toggle').click();
   await expect(page.locator('#billing-login')).toBeVisible();
   await page.getByLabel('Username',{exact:true}).fill('admin');
   await page.getByLabel('Password',{exact:true}).fill('lieuvippro');
