@@ -22,12 +22,12 @@ test.beforeAll(async () => {
 test('calendar navigates months, limits avatars and keeps the selected month after quick changes', async ({ page }) => {
   await page.goto('index.html?month=2026-10&emulator=1');
   await expect(page.locator('#month-title')).toHaveText('Tháng 10, 2026');
-  const day = page.locator('a[data-date="2026-10-14"]');
+  const day = page.locator('a[data-date="2026-10-14"]').locator('..');
   await expect(day.locator('img')).toHaveCount(3);
   await expect(day).toContainText('+1');
   await page.getByRole('button', { name: 'Tháng sau', exact: true }).click();
   await expect(page.locator('#month-title')).toHaveText('Tháng 11, 2026');
-  await expect(page.locator('a[data-date="2026-11-14"] img')).toHaveCount(1);
+  await expect(page.locator('a[data-date="2026-11-14"]').locator('..').locator('img')).toHaveCount(1);
   await page.getByRole('button', { name: 'Tháng trước', exact: true }).click();
   await page.getByRole('button', { name: 'Tháng trước', exact: true }).click();
   await expect(page.locator('#month-title')).toHaveText('Tháng 9, 2026');
@@ -136,7 +136,7 @@ test('phone layout, keyboard selection and history navigation keep the daily lis
   await page.screenshot({ path: '.playwright/detail-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto('index.html?month=2026-10&emulator=1');
-  await expect(page.locator('a[data-date="2026-10-14"] img')).toHaveCount(3);
+  await expect(page.locator('a[data-date="2026-10-14"]').locator('..').locator('img')).toHaveCount(3);
   await page.screenshot({ path: '.playwright/calendar-desktop.png', fullPage: true });
   await second.close();
 });

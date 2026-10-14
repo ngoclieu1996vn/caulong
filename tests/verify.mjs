@@ -9,6 +9,7 @@ for (const args of [
   ['--test', 'tests/utils.test.mjs'],
   ['--test', 'tests/firestore.rules.test.mjs'],
   ['node_modules/playwright/cli.js', 'test'],
+  ['--test', 'tests/avatar-preview.test.mjs'],
 ]) {
   const result = spawnSync(process.execPath, args, { stdio: 'inherit', env: process.env });
   if (result.error) throw result.error;

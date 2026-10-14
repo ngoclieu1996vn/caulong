@@ -1,5 +1,75 @@
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
 
+.avatar-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  line-height: 0;
+  cursor: zoom-in;
+}
+.avatar-trigger img {
+  object-fit: cover;
+  border-radius: 50%;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .avatar-trigger:hover { z-index: 2; }
+  .avatar-trigger:hover img {
+    transform: scale(1.18);
+    box-shadow: 0 3px 12px #203c3a30;
+  }
+}
+.avatar-viewer-open { overflow: hidden; }
+.avatar-viewer {
+  width: min(540px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 54px 20px 22px;
+  margin: auto;
+  border: 0;
+  border-radius: 18px;
+  background: white;
+  color: var(--ink);
+  box-shadow: 0 20px 80px #0005;
+}
+.avatar-viewer::backdrop { background: #10241cbb; }
+.avatar-viewer figure { margin: 0; }
+.avatar-viewer img {
+  width: 100%;
+  max-height: 65vh;
+  max-height: 65dvh;
+  object-fit: contain;
+  border-radius: 10px;
+}
+.avatar-viewer figcaption {
+  margin-top: 16px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  font-weight: 600;
+}
+.avatar-viewer-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f0f3ed;
+  color: #245c45;
+  font-size: 28px;
+  line-height: 1;
+}
+
 :root {
   --green: #245c45;
   --green-dark: #174832;
@@ -331,6 +401,16 @@ h1 {
   align-items: center;
   min-width: 0;
   padding-left: 1px;
+  margin-top: 44px;
+}
+.calendar-day-link {
+  position: absolute;
+  inset: 0;
+  padding: inherit;
+}
+.day-avatars .avatar-trigger {
+  position: relative;
+  margin-left: -3px;
 }
 .day-avatars img {
   width: 25px;
@@ -338,7 +418,6 @@ h1 {
   flex-shrink: 0;
   border: 2px solid white;
   border-radius: 50%;
-  margin-left: -3px;
 }
 .avatar-more {
   margin-left: 3px;
@@ -513,19 +592,28 @@ h1 {
 .member-card.is-checked {
   background: #f4f8f0;
 }
+.member-main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 18px;
+  min-height: 104px;
+}
 .member-select {
   display: flex;
   align-items: center;
   text-align: left;
   gap: 13px;
-  padding: 18px;
-  width: 100%;
-  min-height: 104px;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
   border: 0;
   background: transparent;
   color: inherit;
 }
-.member-select img {
+.member-avatar img {
   width: 49px;
   height: 49px;
   border-radius: 50%;
@@ -851,12 +939,14 @@ h1 {
   .day-avatars {
     flex-wrap: nowrap;
     padding-left: 2px;
+    margin-top: 37px;
   }
+  .day-avatars .avatar-trigger { margin-left: -5px; }
+  .day-avatars .avatar-trigger:first-child { margin-left: 0; }
   .day-avatars img {
     width: 17px;
     height: 17px;
     border-width: 1px;
-    margin-left: -5px;
   }
   .day-avatars img:first-child {
     margin-left: 0;
@@ -903,7 +993,7 @@ h1 {
   .member-grid {
     gap: 9px;
   }
-  .member-select {
+  .member-main {
     flex-direction: column;
     align-items: flex-start;
     padding: 15px;
@@ -911,7 +1001,12 @@ h1 {
     position: relative;
     min-height: 174px;
   }
-  .member-select img {
+  .member-select {
+    position: static;
+    width: 100%;
+    padding: 0;
+  }
+  .member-avatar img {
     width: 45px;
     height: 45px;
   }

@@ -6,6 +6,7 @@ import {
 } from "./utils.js";
 import { MEMBERS, getMember, GUEST_AVATAR } from "./members.js";
 import { emulatorSuffix, preserveLocalCalendarLinks } from "./navigation.js";
+import { createAvatarButton } from "./avatar-preview.js";
 
 preserveLocalCalendarLinks();
 
@@ -46,11 +47,8 @@ function buildCards() {
     select.type = "button";
     select.setAttribute("aria-expanded", "false");
     select.setAttribute("aria-controls", `action-${member.id}`);
-    const avatar = element("img");
-    avatar.src = member.avatar;
-    avatar.alt = "";
-    avatar.width = 49;
-    avatar.height = 49;
+    const avatar = createAvatarButton(member.avatar, member.name, 49);
+    avatar.classList.add("member-avatar");
     const info = element("span", "member-info");
     const state = element("span", "member-state", "Chưa check-in");
     info.append(
@@ -60,7 +58,9 @@ function buildCards() {
     );
     const indicator = element("span", "selection-indicator");
     indicator.setAttribute("aria-hidden", "true");
-    select.append(avatar, info, indicator);
+    select.append(info, indicator);
+    const main = element("div", "member-main");
+    main.append(avatar, select);
     const action = element("div", "member-action");
     action.id = `action-${member.id}`;
     action.hidden = true;
@@ -72,7 +72,7 @@ function buildCards() {
     button.type = "button";
     button.disabled = true;
     action.append(button);
-    card.append(select, action);
+    card.append(main, action);
     $("#member-grid").append(card);
     cards.set(member.id, { card, select, state, indicator, action, button });
     select.addEventListener("click", () => {
@@ -122,14 +122,11 @@ function renderAttendees() {
   }
   for (const record of records) {
     const row = element("li", "attendee");
-    const avatar = element("img");
-    avatar.src =
+    const avatarSource =
       record.type === "member"
         ? getMember(record.memberId)?.avatar || GUEST_AVATAR
         : GUEST_AVATAR;
-    avatar.alt = "";
-    avatar.width = 37;
-    avatar.height = 37;
+    const avatar = createAvatarButton(avatarSource, record.name, 37);
     const info = element("div", "attendee-info");
     info.append(
       element("p", "attendee-name", record.name),

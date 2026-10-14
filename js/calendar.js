@@ -1,6 +1,7 @@
 import { todayKey, calendarDays, monthRange, isValidDateKey } from "./utils.js";
 import { getMember, GUEST_AVATAR } from "./members.js";
 import { emulatorSuffix, preserveLocalCalendarLinks } from "./navigation.js";
+import { createAvatarButton } from "./avatar-preview.js";
 
 preserveLocalCalendarLinks();
 
@@ -34,39 +35,39 @@ function render() {
     grouped.get(record.date).push(record);
   }
   for (const [index, date] of calendarDays(year, month).entries()) {
-    const cell = document.createElement(date ? "a" : "div");
+    const cell = document.createElement("div");
     cell.className = "calendar-day";
     if (!date) {
       cell.classList.add("empty");
       cell.setAttribute("aria-hidden", "true");
     } else {
       const attendees = grouped.get(date) || [];
-      cell.href = `./detail.html?date=${date}${emulatorSuffix}`;
-      cell.dataset.date = date;
-      cell.setAttribute(
+      const dayLink = document.createElement("a");
+      dayLink.className = "calendar-day-link";
+      dayLink.href = `./detail.html?date=${date}${emulatorSuffix}`;
+      dayLink.dataset.date = date;
+      dayLink.setAttribute(
         "aria-label",
         `${Number(date.slice(-2))} tháng ${month} năm ${year}, ${loading ? "đang tải check-in" : `${attendees.length} người đã check-in`}`,
       );
       if (date === today) {
         cell.classList.add("is-today");
-        cell.setAttribute("aria-current", "date");
+        dayLink.setAttribute("aria-current", "date");
       }
       if (index % 7 >= 5) cell.classList.add("is-weekend");
       const number = document.createElement("span");
       number.className = "day-number";
       number.textContent = Number(date.slice(-2));
-      cell.append(number);
+      dayLink.append(number);
+      cell.append(dayLink);
       const avatars = document.createElement("span");
       avatars.className = "day-avatars";
       for (const person of attendees.slice(0, 3)) {
-        const avatar = document.createElement("img");
-        avatar.src =
+        const avatarSource =
           person.type === "member"
             ? getMember(person.memberId)?.avatar || GUEST_AVATAR
             : GUEST_AVATAR;
-        avatar.alt = person.name;
-        avatar.width = 25;
-        avatar.height = 25;
+        const avatar = createAvatarButton(avatarSource, person.name, 25);
         avatars.append(avatar);
       }
       if (attendees.length > 3) {
