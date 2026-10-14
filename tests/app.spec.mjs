@@ -1,0 +1,102 @@
+import { test, expect } from '@playwright/test';
+import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
+
+test.beforeAll(async () => {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('Browser tests require the local Firestore Emulator.');
+  const env = await initializeTestEnvironment({ projectId: 'demo-calendar-checkin', firestore: { host: '127.0.0.1', port: 8080 } });
+  await env.clearFirestore();
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    for (const [index, name] of ['Bảo Long', 'Anh Nam', 'Lan Anh', 'Khách thử nghiệm'].entries()) {
+      await setDoc(doc(db, 'checkins', `fixture-${index}`), {
+        date: '2026-10-14', memberId: index < 3 ? `member_0${index + 1}` : null,
+        name, type: index < 3 ? 'member' : 'guest', checkedInAt: Timestamp.fromMillis(1791975600000 + index * 1000),
+      });
+    }
+    await setDoc(doc(db, 'checkins', 'other-month'), { date: '2026-11-14', memberId: null, name: 'Khách tháng khác', type: 'guest', checkedInAt: Timestamp.fromMillis(1791975600000) });
+  });
+  await env.cleanup();
+});
+
+test('calendar navigates months, limits avatars and keeps the selected month after quick changes', async ({ page }) => {
+  await page.goto('index.html?month=2026-10&emulator=1');
+  await expect(page.locator('#month-title')).toHaveText('Tháng 10, 2026');
+  const day = page.locator('a[data-date="2026-10-14"]');
+  await expect(day.locator('img')).toHaveCount(3);
+  await expect(day).toContainText('+1');
+  await page.getByRole('button', { name: 'Tháng sau', exact: true }).click();
+  await expect(page.locator('#month-title')).toHaveText('Tháng 11, 2026');
+  await expect(page.locator('a[data-date="2026-11-14"] img')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Tháng trước', exact: true }).click();
+  await page.getByRole('button', { name: 'Tháng trước', exact: true }).click();
+  await expect(page.locator('#month-title')).toHaveText('Tháng 9, 2026');
+  await expect(page.locator('.calendar-grid img')).toHaveCount(0);
+});
+
+test('calendar fits a narrow phone and opens the chosen date', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto('index.html?month=2026-10&emulator=1');
+  await expect(page.locator('a[data-date="2026-10-14"]')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('a[data-date="2026-10-14"]').click();
+  await expect(page).toHaveURL(/detail\.html\?date=2026-10-14&emulator=1$/);
+});
+
+test('member selection never writes, explicit check-in syncs to a second tab, guests persist after reload', async ({ page, context }) => {
+  await page.goto('detail.html?date=2026-10-15&emulator=1');
+  await expect(page.locator('.member-card')).toHaveCount(5);
+  await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  const second = await context.newPage();
+  await second.goto('detail.html?date=2026-10-15&emulator=1');
+  await expect(second.locator('#data-status')).toContainText('Đã đồng bộ');
+  await page.locator('[data-member-id="member_01"] .member-select').click();
+  await expect(page.locator('[data-member-id="member_01"] .member-action')).toBeVisible();
+  await expect(page.locator('#attendee-count')).toHaveText('0');
+  await page.locator('[data-member-id="member_01"] .checkin-button').click();
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await expect(second.locator('#attendee-count')).toHaveText('1');
+  await expect(second.locator('[data-member-id="member_01"]')).toHaveClass(/is-checked/);
+  await page.getByRole('button', { name: 'Bạn là khách vãng lai' }).click();
+  await page.getByLabel('Họ và tên').fill('<script>');
+  await page.getByRole('button', { name: 'Xác nhận check-in' }).click();
+  await expect(page.locator('#guest-error')).not.toBeEmpty();
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await page.getByLabel('Họ và tên').fill('  Nguyễn   Khách  ');
+  await page.getByRole('button', { name: 'Xác nhận check-in' }).click();
+  await expect(page.locator('#attendee-count')).toHaveText('2');
+  await expect(page.getByLabel('Họ và tên')).toHaveValue('');
+  await page.reload();
+  await expect(page.locator('#attendee-count')).toHaveText('2');
+  await expect(page.locator('#attendee-list')).toContainText('Nguyễn Khách');
+  await page.locator('#back-link').click();
+  await expect(page).toHaveURL(/month=2026-10&emulator=1/);
+  await second.close();
+});
+
+test('invalid dates block check-in and Firebase CDN failure is explained', async ({ page }) => {
+  await page.goto('detail.html?date=2026-02-29&emulator=1');
+  await expect(page.locator('#invalid-date')).toBeVisible();
+  await expect(page.locator('#detail-content')).toBeHidden();
+  await page.route('https://www.gstatic.com/firebasejs/**', route => route.abort());
+  await page.goto('index.html?month=2026-10&emulator=1');
+  await expect(page.locator('#data-status')).toContainText('Không tải được Firebase');
+  await expect(page.getByRole('button', { name: 'Thử lại' })).toBeVisible();
+});
+
+test('offline guest submission waits for the server and reconnects with one document', async ({ page, context }) => {
+  await page.goto('detail.html?date=2026-10-16&emulator=1');
+  await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
+  await page.getByRole('button', { name: 'Bạn là khách vãng lai' }).click();
+  await page.getByLabel('Họ và tên').fill('Khách Offline');
+  await context.setOffline(true);
+  await page.getByRole('button', { name: 'Xác nhận check-in' }).click();
+  await expect(page.locator('#guest-submit')).toBeDisabled();
+  await expect(page.locator('#attendee-count')).toHaveText('0');
+  await expect(page.locator('#notice')).toContainText('chờ');
+  await context.setOffline(false);
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+  await expect(page.locator('#guest-submit')).toBeEnabled();
+  await page.reload();
+  await expect(page.locator('#attendee-count')).toHaveText('1');
+});

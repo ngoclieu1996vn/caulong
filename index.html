@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#245c45">
+  <meta name="description" content="Lịch check-in cầu lông của cả nhóm. Chọn ngày, điểm danh và hẹn nhau trên sân.">
+  <title>Lịch check-in · Cầu lông</title>
+  <link rel="icon" href="./assets/avatars/guest.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./index.html" aria-label="Cầu lông — Trang chủ"><span class="brand-mark" aria-hidden="true">↗</span><span>Cầu lông<span class="brand-caption">HẸN NHAU TRÊN SÂN</span></span></a>
+    <span class="header-note"><span class="live-dot"></span> Cùng chơi, cùng vui</span>
+  </header>
+  <main class="container">
+    <section class="page-intro">
+      <div><p class="eyebrow">LỊCH CHECK-IN</p><h1>Hẹn nhau trên sân<span class="accent">.</span></h1><p class="intro-copy">Một cú chạm để điểm danh. Một buổi cầu thêm gắn kết.</p></div>
+      <div class="intro-stamp" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none"><path d="m37 64-17 17m13-21 7 7" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><ellipse cx="58" cy="40" rx="22" ry="29" transform="rotate(40 58 40)" stroke="currentColor" stroke-width="4"/><path d="m45 22 30 25M36 34l31 26m-30-9 30-32M45 61l31-34" stroke="currentColor" stroke-width="1.5" opacity=".55"/></svg><span>ĐỦ HỘI · THÊM VUI</span></div>
+    </section>
+    <section class="calendar-panel" aria-label="Lịch check-in theo tháng">
+      <div class="calendar-toolbar">
+        <div><p class="eyebrow small">LỊCH CỦA CẢ NHÓM</p><h2 id="month-title">Lịch tháng</h2></div>
+        <div class="calendar-controls"><button class="button button-light today-button" id="today-button" type="button">Hôm nay</button><div class="arrow-controls"><button class="icon-button" id="previous-month" type="button" aria-label="Tháng trước">‹</button><button class="icon-button" id="next-month" type="button" aria-label="Tháng sau">›</button></div></div>
+      </div>
+      <div class="weekdays" aria-hidden="true"><span>Thứ Hai</span><span>Thứ Ba</span><span>Thứ Tư</span><span>Thứ Năm</span><span>Thứ Sáu</span><span>Thứ Bảy</span><span>Chủ Nhật</span></div>
+      <div id="calendar-grid" class="calendar-grid" aria-label="Các ngày trong tháng"></div>
+      <div class="calendar-footer"><span><span class="legend-dot"></span> Hôm nay <span class="legend-separator">·</span> Chọn ngày để check-in</span><span id="month-summary">— lượt check-in</span></div>
+    </section>
+    <div id="data-status" class="data-status" role="status" aria-live="polite">Đang kết nối với lịch của nhóm…</div>
+    <button id="retry-button" class="button button-light retry-button" type="button" hidden>Thử lại</button>
+    <section class="hint-card"><span class="hint-icon" aria-hidden="true">✦</span><div><h3>Buổi cầu vui bắt đầu từ một lời hẹn</h3><p>Chọn ngày trên lịch, tìm tên của bạn và nhấn Check-in. Khách vãng lai cũng luôn được chào đón.</p></div><span class="hint-arrow" aria-hidden="true">↗</span></section>
+  </main>
+  <footer class="site-footer"><span>Cầu lông <span class="footer-dot">/</span> Lịch của những buổi vui</span><span>Gặp nhau trên sân nhé!</span></footer>
+  <noscript><p class="data-status is-error">Vui lòng bật JavaScript để xem lịch và check-in.</p></noscript>
+  <script type="module">
+    import('./js/calendar.js').catch(() => {
+      document.querySelector('#data-status').textContent = 'Không tải được ứng dụng. Kiểm tra kết nối mạng và tải lại trang.';
+      document.querySelector('#data-status').classList.add('is-error');
+      const retry = document.querySelector('#retry-button'); retry.hidden = false; retry.onclick = () => location.reload();
+    });
+  </script>
+</body>
+</html>
