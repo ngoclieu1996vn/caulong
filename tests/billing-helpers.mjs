@@ -1,5 +1,6 @@
 import {expect} from '@playwright/test';
 export async function openBilling(page){
+  await page.getByRole('tab',{name:'Danh sách',exact:true}).click();
   await page.locator('#billing-toggle').click();
   await expect(page.locator('#billing-login')).toBeVisible();
   await page.getByLabel('Username',{exact:true}).fill('admin');

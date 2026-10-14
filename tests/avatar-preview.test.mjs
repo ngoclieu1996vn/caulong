@@ -90,6 +90,7 @@ test('calendar avatar opens the photo while clicking the day still navigates', a
 test('mobile attendee avatar supports touch, fits the viewport and closes from the backdrop', async () => {
   const page = await openPage('detail.html?date=2026-10-14', true);
   try {
+    await page.getByRole('tab', {name:'Danh sách',exact:true}).click();
     await page.locator('#attendee-list .avatar-trigger').first().tap();
     const dialog = page.getByRole('dialog');
     await dialog.waitFor({ state: 'visible' });
@@ -123,6 +124,7 @@ test('desktop hover enlarges the thumbnail and keyboard opens the viewer', async
 test('closing after a realtime rerender restores focus to the replacement avatar', async () => {
   const page = await openPage('detail.html?date=2026-10-14');
   try {
+    await page.getByRole('tab', {name:'Danh sách',exact:true}).click();
     const avatar = page.locator('#attendee-list .avatar-trigger').first();
     await avatar.click();
     await page.getByRole('dialog').waitFor({ state: 'visible' });

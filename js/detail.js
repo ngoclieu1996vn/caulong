@@ -11,6 +11,7 @@ import { buildParticipants } from './participants.js';
 import { formatMoney } from './billing.js';
 import { createBillingController } from './billing-ui.js';
 import { createTeamGamesController } from './team-games-ui.js';
+import { initializeDetailTabs } from './detail-tabs.js';
 
 preserveLocalCalendarLinks();
 
@@ -316,9 +317,10 @@ async function submitCancellation(record) {
     pending = null;
     renderAttendees();
     updateCards();
-    if (!succeeded) focusRowAction(record.id, ".delete-confirm");
-    else if (record.type === "member" && cards.has(record.memberId)) cards.get(record.memberId).select.focus({ preventScroll: true });
-    else focusAttendeesHeading();
+    if (!$("#panel-list").hidden) {
+      if (!succeeded) focusRowAction(record.id, ".delete-confirm");
+      else focusAttendeesHeading();
+    }
   }
 }
 async function submitMember(member) {
@@ -396,6 +398,7 @@ async function boot() {
   $("#back-link").href =
     `./index.html?month=${date.slice(0, 7)}${emulatorSuffix}`;
   buildCards();
+  initializeDetailTabs($('#detail-content'));
   billing=createBillingController({date,root:$('#billing-root'),summaryRoot:$('#day-summary'),onAllocationsChange:result=>{allocations=result.allocations;renderAmounts();}});
   billing.start();
   games=createTeamGamesController({date,root:$('#games-root')});games.start();

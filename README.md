@@ -83,6 +83,8 @@ Rules cho phép đọc/thêm mới/xóa `checkins`, chặn sửa check-in; cho p
 
 ## Tính tiền theo ngày
 
+Trang chi tiết chia thành ba tab: **Check-in** (thành viên và khách vãng lai), **Danh sách** (người đã check-in, hủy và tính tiền), **Trò chơi** (vòng quay và chia đội). Ngày và thông tin buổi chơi đã lưu hiển thị chung phía trên. Tab mặc định là Check-in; tab được chọn có nền xanh, hỗ trợ phím mũi tên/Home/End và nhớ qua phần `#checkin`, `#list`, `#games` trong URL khi tải lại hoặc dùng Back/Forward. Chuyển tab giữ input đang nhập và dữ liệu tiếp tục đồng bộ; lượt quay đang chạy không bị khởi động lại.
+
 Trên trang chi tiết, bấm **Tính tiền**, nhập Username và Password để mở modal chi phí. Tài khoản giao diện được cấu hình trong `js/billing-access.js` theo thông tin người dùng cung cấp. Sau khi đăng nhập thành công, username và password được lưu trong localStorage để tự điền lần sau; mỗi lần mở vẫn cần nhấn Đăng nhập. Nếu trình duyệt chặn storage, đăng nhập vẫn dùng được nhưng không nhớ tài khoản. Đây là khóa giao diện frontend, không phải Firebase Authentication: mật khẩu nằm trong mã nguồn công khai và có thể đọc từ localStorage, quyền Firestore vẫn do Rules quyết định.
 
 Modal có nút ×, đóng bằng Escape hoặc bấm nền bên ngoài; khi đóng/mở lại vẫn giữ input chưa lưu. Form cuộn bên trong, các nút Lưu/Tính tiền ở cuối modal luôn dễ truy cập trên điện thoại. Khi gửi, nút hiện vòng xoay và trạng thái Đang lưu/Đang tính tiền; khóa form và thao tác đóng modal trong lúc chờ để tránh gửi lặp. Thành công mới tự đóng modal; lỗi thì giữ dữ liệu và mở nút thử lại. Avatar trong modal vẫn mở ảnh lớn.

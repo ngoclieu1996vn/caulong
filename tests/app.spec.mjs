@@ -197,6 +197,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   await calendar.goto('index.html?month=2026-10&emulator=1');
   const day = calendar.locator('a[data-date="2026-10-20"]').locator('..');
   await expect(day.locator('img')).toHaveCount(1);
+  await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await page.getByRole('button', { name: 'Giữ lại', exact: true }).click();
@@ -210,6 +211,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   await expect(second.locator('#attendee-count')).toHaveText('0');
   await expect(day.locator('img')).toHaveCount(0);
   await expect(page.locator('[data-member-id="member_01"]')).not.toHaveClass(/is-checked/);
+  await page.getByRole('tab', { name: 'Check-in', exact: true }).click();
   await page.locator('[data-member-id="member_01"] .member-select').click();
   await page.locator('[data-member-id="member_01"] .checkin-button').click();
   await expect(page.locator('#attendee-count')).toHaveText('1');
@@ -219,6 +221,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   await page.getByRole('button', { name: 'Xác nhận check-in' }).click();
   await expect(page.locator('#attendee-count')).toHaveText('2');
   const guest = page.locator('.attendee').filter({ hasText: 'Khách hủy nhầm' });
+  await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await guest.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
   await guest.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
   await expect(page.locator('#attendee-count')).toHaveText('1');
@@ -233,6 +236,7 @@ test('offline cancellation keeps the confirmed row and count until the server ac
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInMember('2026-10-21', 'member_02'));
   await expect(page.locator('#attendee-count')).toHaveText('1');
+  await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
   await context.setOffline(true);
   await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
@@ -256,6 +260,7 @@ test('rejected cancellation preserves the record and allows retry', async ({ pag
     await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
     await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-22', 'Khách giữ lại', 'Nam'));
     await expect(page.locator('#attendee-count')).toHaveText('1');
+    await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
     await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
     await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
     await expect(page.locator('#notice')).toHaveClass(/is-error/);
@@ -274,6 +279,7 @@ test('inline confirmation keeps its focused action through realtime changes and 
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInMember('2026-10-23', 'member_03'));
   await expect(page.locator('#attendee-count')).toHaveText('1');
+  await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toBeFocused();
   const second = await context.newPage();

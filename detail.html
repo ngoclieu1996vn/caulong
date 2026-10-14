@@ -46,15 +46,11 @@
           </p>
           <div id="day-summary" class="day-summary" aria-label="Thông tin buổi chơi đã lưu" aria-live="polite" hidden></div>
         </section>
-        <div class="section-heading">
-          <h2>Bạn đã sẵn sàng lên sân?</h2>
-          <p>Chọn tên để check-in</p>
+        <div class="detail-tabs" role="tablist" aria-label="Nội dung buổi chơi">
+          <button id="tab-checkin" type="button" role="tab" aria-selected="true" aria-controls="panel-checkin" tabindex="0">Check-in</button>
+          <button id="tab-list" type="button" role="tab" aria-selected="false" aria-controls="panel-list" tabindex="-1">Danh sách</button>
+          <button id="tab-games" type="button" role="tab" aria-selected="false" aria-controls="panel-games" tabindex="-1">Trò chơi</button>
         </div>
-        <div
-          id="member-grid"
-          class="member-grid"
-          aria-label="Thành viên của nhóm"
-        ></div>
         <div
           id="data-status"
           class="data-status"
@@ -71,6 +67,13 @@
         >
           Thử lại
         </button>
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+        <section id="panel-checkin" class="detail-tab-panel" role="tabpanel" aria-labelledby="tab-checkin">
+        <div class="section-heading">
+          <h2>Bạn đã sẵn sàng lên sân?</h2>
+          <p>Chọn tên để check-in</p>
+        </div>
+        <div id="member-grid" class="member-grid" aria-label="Thành viên của nhóm"></div>
         <section class="guest-section" aria-label="Check-in khách vãng lai">
           <div class="guest-prompt">
             <div>
@@ -119,13 +122,8 @@
             <p class="field-error" id="guest-error" role="alert"></p>
           </form>
         </section>
-        <div
-          id="notice"
-          class="notice"
-          role="status"
-          aria-live="polite"
-          hidden
-        ></div>
+        </section>
+        <section id="panel-list" class="detail-tab-panel" role="tabpanel" aria-labelledby="tab-list" hidden>
         <div id="billing-root"></div>
         <section aria-labelledby="attendees-title">
           <div class="section-heading">
@@ -135,10 +133,13 @@
             </h2>
             <p>Thời gian check-in · giờ Việt Nam</p>
           </div>
-          <div id="games-root"></div>
           <ul id="attendee-list" class="attendee-list">
             <li class="empty-state">Đang tải danh sách check-in…</li>
           </ul>
+        </section>
+        </section>
+        <section id="panel-games" class="detail-tab-panel" role="tabpanel" aria-labelledby="tab-games" hidden>
+          <div id="games-root"></div>
         </section>
       </div>
     </main>

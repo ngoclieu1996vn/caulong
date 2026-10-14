@@ -13,7 +13,7 @@ test.beforeAll(async()=>{
 test.afterAll(()=>env?.cleanup());
 
 test('only successful credentials are remembered, including after reload and unavailable storage',async({page})=>{
-  await page.goto('detail.html?date=2026-12-27&emulator=1');
+  await page.goto('detail.html?date=2026-12-27&emulator=1#list');
   await page.locator('#billing-toggle').click();
   await page.getByLabel('Username',{exact:true}).fill('admin');
   await page.getByLabel('Password',{exact:true}).fill('wrong');
@@ -78,6 +78,7 @@ for(const calculate of [false,true])test(`${calculate?'calculate':'save'} waits 
 test('game selection is visible and follows saved mode after reload',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.goto('detail.html?date=2026-12-25&emulator=1');
+  await page.getByRole('tab',{name:'Trò chơi',exact:true}).click();
   await expect(page.locator('#games-status')).not.toContainText('Đang tải');
   const wheel=page.getByRole('button',{name:'Vòng quay',exact:true}),mixed=page.getByRole('button',{name:'Chia đội ngẫu nhiên',exact:true});
   await wheel.click();await expect(wheel).toHaveAttribute('aria-pressed','true');await expect(mixed).toHaveAttribute('aria-pressed','false');

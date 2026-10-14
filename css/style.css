@@ -1101,7 +1101,19 @@ h1 {
   .date-hero {
     padding-top: 2px;
   }
+  .detail-container .date-hero { padding-bottom:16px; }
+  .detail-container .date-number { font-size:52px; letter-spacing:-2px; }
+  .detail-container .date-month { margin-top:2px; }
+  .detail-container .count-pill { margin-top:12px; }
   .page-intro:has(+ .calendar-panel) .intro-stamp {
     display: none;
   }
 }
+.detail-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; padding:5px; background:#e8eee3; border:1px solid #d9e3d3; border-radius:14px; position:sticky; top:8px; z-index:5; box-shadow:0 5px 18px #2449340b; }
+.detail-tabs [role="tab"] { border:0; border-radius:10px; padding:13px 8px; min-height:44px; background:transparent; color:#62735a; font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+.detail-tabs [aria-selected="true"] { background:#245c45; color:#fff; box-shadow:0 3px 8px #245c4520; }
+.detail-tabs [role="tab"]:focus-visible { outline:2px solid #b57e42; outline-offset:1px; }
+.detail-tab-panel { padding-top:4px; }
+.detail-container #data-status { min-height:0; padding:6px 3px; margin:8px 0; }
+.detail-tab-panel .billing-toolbar,.detail-tab-panel .game-tools { margin-top:12px; }
+@media(max-width:540px) { .detail-tabs { gap:3px; padding:4px; border-radius:12px; } .detail-tabs [role="tab"] { padding:11px 6px; font-size:12px; border-radius:8px; } }

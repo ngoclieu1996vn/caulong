@@ -11,13 +11,14 @@ test.beforeAll(async()=>{
   });
 });
 test.afterAll(()=>env?.cleanup());
-async function open(page,date){await page.goto(`detail.html?date=${date}&emulator=1`);await expect(page.locator('#attendee-count')).toHaveText('2');await expect(page.locator('#billing-status')).not.toContainText('Đang tải');await expect(page.locator('#games-status')).not.toContainText('Đang tải');}
+async function open(page,date){await page.goto(`detail.html?date=${date}&emulator=1#list`);await expect(page.locator('#attendee-count')).toHaveText('2');await expect(page.locator('#billing-status')).not.toContainText('Đang tải');await expect(page.locator('#games-status')).not.toContainText('Đang tải');}
 test('billing and games stay independent, roster changes invalidate both',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await open(page,'2026-12-12');
   await openBilling(page);
   await page.locator('#billing-panel').getByRole('button',{name:'Tính tiền',exact:true}).click();
   await expect(page.locator('.attendee-amount')).toHaveCount(2);
   await expect(page.locator('#billing-panel')).toBeHidden();
+  await page.getByRole('tab',{name:'Trò chơi',exact:true}).click();
   await page.getByRole('button',{name:'Chia đội ngẫu nhiên',exact:true}).click();
   await page.getByRole('button',{name:'Chia đội',exact:true}).click();
   await expect(page.locator('#games-status')).toContainText('Đã lưu');
@@ -47,6 +48,7 @@ test('offline cost and game save preserve inputs and permit retry after reconnec
   await expect(page.getByLabel('Tiền sân (đ)')).toHaveValue('230.000');
   await expect(page.locator('.attendee-amount')).toHaveCount(0);
   await closeBilling(page);
+  await page.getByRole('tab',{name:'Trò chơi',exact:true}).click();
   await page.getByRole('button',{name:'Chia đội ngẫu nhiên',exact:true}).click();
   await page.getByRole('button',{name:'Chia đội',exact:true}).click();
   await expect(page.locator('#games-status')).toContainText('chưa lưu');
@@ -64,14 +66,17 @@ test('missing new Rules leaves check-in and cancellation available',async({page}
     await page.route(`**/js/${file}-service.js`,route=>route.fulfill({contentType:'text/javascript',body:`export const ${watch}=(date,onData,onError)=>{queueMicrotask(()=>onError({code:'permission-denied'}));return ()=>{};};`}));
   await open(page,'2026-12-14');
   await expect(page.locator('#billing-status')).toContainText('Rules');await expect(page.locator('#games-status')).toContainText('Rules');
+  await page.getByRole('tab',{name:'Check-in',exact:true}).click();
   await page.locator('[data-member-id="member_01"] .member-select').click();
   await page.locator('[data-member-id="member_01"] .checkin-button').click();
   await expect(page.locator('#attendee-count')).toHaveText('3');
+  await page.getByRole('tab',{name:'Danh sách',exact:true}).click();
   await page.locator('.cancel-checkin').first().click();await page.locator('.delete-confirm').click();
   await expect(page.locator('#attendee-count')).toHaveText('2');
 });
 test('normal wheel animation locks draws and its final sector agrees with winner',async({page})=>{
   await open(page,'2026-12-15');
+  await page.getByRole('tab',{name:'Trò chơi',exact:true}).click();
   await page.getByRole('button',{name:'Vòng quay',exact:true}).click();
   await page.locator('.team-wheel').evaluate(canvas=>{
     const animate=canvas.animate.bind(canvas);

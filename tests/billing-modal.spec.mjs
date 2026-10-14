@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {openBilling,closeBilling} from './billing-helpers.mjs';
 test('billing requires credentials on each opening, closes with Escape and preserves unsaved formatted inputs',async({page})=>{
-  await page.goto('detail.html?date=2026-12-22&emulator=1');
+  await page.goto('detail.html?date=2026-12-22&emulator=1#list');
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   await page.getByRole('button',{name:'Tính tiền',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Đăng nhập tính tiền'})).toBeVisible();

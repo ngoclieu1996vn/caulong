@@ -16,7 +16,7 @@ test.beforeAll(async()=>{
 });
 test.afterAll(()=>env?.cleanup());
 async function open(page,date){
-  await page.goto(`detail.html?date=${date}&emulator=1`);
+  await page.goto(`detail.html?date=${date}&emulator=1#games`);
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   await expect(page.locator('#games-status')).not.toContainText('Đang tải');
 }
