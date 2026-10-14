@@ -1,0 +1,8 @@
+﻿.worktrees/
+.superpowers/
+node_modules/
+*-debug.log
+.env
+.env.*
+.playwright/
+test-results/
