@@ -72,11 +72,20 @@ test('missing new Rules leaves check-in and cancellation available',async({page}
 test('normal wheel animation locks draws and its final sector agrees with winner',async({page})=>{
   await open(page,'2026-12-15');
   await page.getByRole('button',{name:'Vòng quay',exact:true}).click();
+  await page.locator('.team-wheel').evaluate(canvas=>{
+    const animate=canvas.animate.bind(canvas);
+    canvas.animate=(frames,...options)=>{
+      window.spinTargetAngle=Number(frames.at(-1).transform.match(/rotate\((.+)deg\)/)[1]);
+      return animate(frames,...options);
+    };
+  });
   await page.getByRole('button',{name:'Quay',exact:true}).evaluate(button=>{button.click();button.click();});
   await expect(page.getByRole('button',{name:'Quay',exact:true})).toBeDisabled();
-  await expect(page.locator('#draw-order li')).toHaveCount(1);
-  const winner=await page.locator('#draw-order li').last().getAttribute('data-person-id');
-  const angle=Number(await page.locator('.team-wheel').getAttribute('data-angle'));
+  await expect(page.locator('#draw-order li')).toHaveCount(2);
+  const winner=await page.locator('#draw-order li').first().getAttribute('data-person-id');
+  // Completion hides and redraws the wheel when the saved snapshot arrives.
+  // Verify the actual animation target, not the reset canvas after saving.
+  const angle=await page.evaluate(()=>window.spinTargetAngle);
   const sector=Math.floor((((-angle%360)+360)%360)/180);
   expect(winner).toBe(`2026-12-15_${sector}`);
 });

@@ -12,6 +12,7 @@ test.beforeAll(async()=>{
   await seed('2026-12-08',[null,'Nam']);
   await seed('2026-12-09',['Nam','Nữ','Nam']);
   await seed('2026-12-10',['Nam']);
+  await seed('2026-12-24',['Nam','Nữ']);
 });
 test.afterAll(()=>env?.cleanup());
 async function open(page,date){
@@ -32,10 +33,10 @@ test('wheel draws everyone once, saves teams and matchups, reload keeps complete
     return Math.abs(rect.x+rect.width/2-button.x-button.width/2)<2&&Math.abs(rect.y+rect.height/2-button.y-button.height/2)<2;
   });
   expect(centered).toBe(true);
-  for(let i=0;i<5;i++){
+  for(let i=0;i<4;i++){
     await page.getByRole('button',{name:'Quay',exact:true}).click();
-    await expect(page.locator('#draw-order li')).toHaveCount(i+1);
-    if(i<4){
+    await expect(page.locator('#draw-order li')).toHaveCount(i===3?5:i+1);
+    if(i<3){
       await expect(page.locator('.game-team')).toHaveCount(Math.ceil((i+1)/2));
       await expect(page.locator('.team-pending-slot')).toHaveCount((i+1)%2);
       if(i===0){
@@ -72,6 +73,26 @@ test('wheel draws everyone once, saves teams and matchups, reload keeps complete
   await expect(page.locator('.game-team')).toHaveCount(0);
   await expect(page.locator('.wheel-winner')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Quay',exact:true})).toBeEnabled();
+});
+
+test('two participants finish after one spin, last player is included automatically',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await open(page,'2026-12-24');
+  await page.getByRole('button',{name:'Vòng quay',exact:true}).click();
+  await page.locator('.team-wheel').evaluate(canvas=>{
+    window.spinCount=0;const animate=canvas.animate.bind(canvas);
+    canvas.animate=(...args)=>{window.spinCount++;return animate(...args);};
+  });
+  await page.getByRole('button',{name:'Quay',exact:true}).click();
+  await expect(page.locator('#draw-order li')).toHaveCount(2);
+  await expect(page.locator('#games-status')).toContainText('Đã lưu');
+  await expect(page.locator('.game-team')).toHaveCount(1);
+  await expect(page.locator('.game-team .team-person')).toHaveCount(2);
+  expect(await page.evaluate(()=>window.spinCount)).toBe(1);
+  const ids=await page.locator('#draw-order li').evaluateAll(items=>items.map(item=>item.dataset.personId));
+  expect(new Set(ids).size).toBe(2);
+  await page.reload();
+  await expect(page.locator('.game-team .team-person')).toHaveCount(2);
 });
 test('mixed animation makes maximal male-female teams and keeps same-gender leftovers',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});

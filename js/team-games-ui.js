@@ -203,9 +203,12 @@ export function createTeamGamesController({date,root}) {
     begin();drawWheel();const people=remaining(),drawn=drawNext(people),index=people.findIndex(p=>p.id===drawn.selected.id);
     animating=true;const token=++runToken;refresh();
     try{
-      await animate(wheelTargetAngle(angle,people.length,index),true);
+      if(people.length>1)await animate(wheelTargetAngle(angle,people.length,index),true);
       if(token!==runToken)return;
       order.push(drawn.selected.id);
+      // The final remaining participant is already determined; include them
+      // without requiring a separate click or playing another spin animation.
+      if(drawn.remaining.length===1)order.push(drawn.remaining[0].id);
       animating=false;
       if(order.length===session.participants.length){
         result=complete(teamsFromOrder(resolved(),order));renderOutput();await persist();

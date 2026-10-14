@@ -87,7 +87,7 @@ Trên trang chi tiết, bấm **Tính tiền**, nhập Username và Password đ�
 
 Modal có nút ×, đóng bằng Escape hoặc bấm nền bên ngoài; khi đóng/mở lại vẫn giữ input chưa lưu. Form cuộn bên trong, các nút Lưu/Lưu & tính tiền ở cuối modal luôn dễ truy cập trên điện thoại. Avatar trong modal vẫn mở ảnh lớn.
 
-Tiền sân mặc định 220.000đ; có sẵn một dòng cầu 27.000đ với số lượng 0. Mỗi loại cầu có nhãn, số lượng, đơn giá và thành tiền; **+ Thêm loại cầu** để nhập thêm giá khác. Trà có số bình (mặc định 0) và giá/bình. Có số lượng thì cần nhập giá, cho phép 0đ. Các ô tiền tự tách hàng nghìn (`220.000`, `27.000`) và có đơn vị `đ`; dữ liệu vẫn lưu bằng số đồng nguyên. Có thể nhập chữ số hoặc dán giá đã định dạng, không nhập `220k`. Những ngày đã lưu nhiều loại cầu tiếp tục giữ đầy đủ các dòng cũ.
+Tiền sân mặc định 220.000đ; có sẵn một dòng cầu 27.000đ với số lượng 0. Mỗi loại cầu có nhãn, số lượng, đơn giá và thành tiền; **+ Thêm loại cầu** để nhập thêm giá khác. Trà mặc định 0 bình, giá 20.000đ/bình. Có số lượng thì cần nhập giá, cho phép 0đ. Các ô tiền tự tách hàng nghìn (`220.000`, `27.000`) và có đơn vị `đ`; dữ liệu vẫn lưu bằng số đồng nguyên. Có thể nhập chữ số hoặc dán giá đã định dạng, không nhập `220k`. Những ngày đã lưu chi phí tiếp tục giữ các dòng cầu và giá trà đã nhập.
 
 Mỗi người check-in có avatar và giờ mặc định 2h; nút −/+ thay đổi 0,5h, từ 0 đến 24h. Bấm avatar vẫn mở ảnh lớn. Người vừa check-in lại sau khi hủy có phiên bản mới và giờ trở về 2h.
 
@@ -102,7 +102,9 @@ Tiền sân và phần cầu/trà được chia riêng bằng số nguyên; các
 
 ## Vòng quay và chia đội
 
-Hai nút **Vòng quay** và **Chia đội ngẫu nhiên** nằm cạnh danh sách check-in. Vòng quay chọn một người mỗi lượt, không lặp; hai người liên tiếp thành một đội. Người lẻ thành đội riêng. Nút Quay khóa khi có animation; chế độ giảm chuyển động vẫn chọn đúng một người.
+Hai nút **Vòng quay** và **Chia đội ngẫu nhiên** nằm cạnh danh sách check-in. Vòng quay chọn một người mỗi lượt, không lặp; hai người liên tiếp thành một đội. Người lẻ thành đội riêng. Nút Quay khóa khi có animation; chế độ giảm chuyển động vẫn giữ đúng thứ tự chọn và ghép đội.
+
+Khi còn một người sau lượt quay, ứng dụng tự thêm người đó và hoàn tất đội/kết quả, không cần nhấn Quay thêm. Ví dụ 5 người chỉ cần 4 lượt quay; 2 người chỉ cần 1 lượt. Nếu danh sách ngay từ đầu có một người, bấm Quay sẽ tạo đội ngay, không chạy animation.
 
 Bấm **Quay** ngay tại tâm vòng tròn để chọn người; các thẻ đội bên dưới cập nhật sau mỗi lượt. Đội chưa đủ hai người có ô **Chờ đồng đội**. Khi quay hết, vòng tròn tự thu gọn để hiển thị bảng đội và cặp đấu; **Xem thứ tự quay** mở lịch sử, icon **↻** cạnh tiêu đề **Vòng quay may mắn** mở vòng quay mới (tooltip: Bắt đầu lại). Tải lại ngày vẫn hiển thị kết quả đã lưu theo bố cục gọn.
 
@@ -169,7 +171,7 @@ npx firebase emulators:start --only firestore --project demo-calendar-checkin
 
 Kết quả đã chạy ngày 14/10/2026:
 
-**74/74 kiểm thử đã qua:** 20 unit, 14 Firestore Rules, 35 Chromium và 5 kiểm thử avatar; kiểm tra syntax tất cả module JS cũng đã qua. Có một lượt review độc lập cho phần tính tiền/trò chơi ban đầu; phần modal và nhập tiền đã kiểm thử đăng nhập sai/đúng, đóng/mở lại, lưu dữ liệu, định dạng và sửa giữa chuỗi.
+**75/75 kiểm thử đã qua:** 20 unit, 14 Firestore Rules, 36 Chromium và 5 kiểm thử avatar; kiểm tra syntax tất cả module JS cũng đã qua. Có một lượt review độc lập cho phần tính tiền/trò chơi ban đầu; phần modal và nhập tiền đã kiểm thử đăng nhập sai/đúng, đóng/mở lại, lưu dữ liệu, định dạng và sửa giữa chuỗi. Kiểm thử vòng quay xác nhận tự thêm người cuối, giữ đủ đội và lưu/tải lại kết quả.
 
 - Unit tests: ngày Việt Nam, ngày nhuận, ngày sai, khoảng tháng, lịch thứ Hai, tên khách, giờ hiển thị; định danh theo phiên bản, chia tiền nguyên đồng, giờ 0/khác nhau, nhiều loại cầu, ghép đội và góc dừng vòng quay.
 - Firestore Emulator tests kiểm tra đọc/thêm mới không phụ thuộc tên, ID hoặc cấu trúc dữ liệu; cho phép xóa và check-in lại, giữ chặn ghi trùng/đồng thời, update và collection khác.

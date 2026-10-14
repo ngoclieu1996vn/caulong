@@ -43,7 +43,7 @@ test('money inputs format mid-string edits, zero, blank and invalid values; mobi
   await court.fill('-100');await expect(page.locator('#billing-summary')).toContainText('số nguyên');
   await court.fill('1.5');await expect(page.locator('#billing-summary')).toContainText('số nguyên');
   await court.fill('220.000');
-  await expect(page.getByLabel('Giá mỗi bình (đ)')).toHaveValue('');
+  await expect(page.getByLabel('Giá mỗi bình (đ)')).toHaveValue('20.000');
   await page.getByRole('button',{name:'+ Thêm loại cầu'}).click();
   await expect(page.locator('.shuttle-row')).toHaveCount(2);
   const box=await page.locator('#billing-panel').boundingBox();
