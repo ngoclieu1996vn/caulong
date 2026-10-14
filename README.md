@@ -100,6 +100,8 @@ Tiền sân và phần cầu/trà được chia riêng bằng số nguyên; các
 
 Hai nút **Vòng quay** và **Chia đội ngẫu nhiên** nằm cạnh danh sách check-in. Vòng quay chọn một người mỗi lượt, không lặp; hai người liên tiếp thành một đội. Người lẻ thành đội riêng. Nút Quay khóa khi có animation; chế độ giảm chuyển động vẫn chọn đúng một người.
 
+Sau mỗi lượt quay, avatar lớn và tên người vừa được chọn xuất hiện cùng các thẻ đội đang ghép. Đội chưa đủ hai người có ô **Chờ đồng đội**. Khi quay hết, vòng tròn tự thu gọn để hiển thị bảng đội và cặp đấu; **Xem thứ tự quay** mở lịch sử, **Bắt đầu lại** mở vòng quay mới. Tải lại ngày vẫn hiển thị kết quả đã lưu theo bố cục gọn.
+
 Chia đội ngẫu nhiên ghép nam–nữ tối đa, sau đó ghép người dư cùng giới, người lẻ thành đội riêng. Khách cũ thiếu giới tính được chọn ngay trong phần trò chơi; lựa chọn lưu cùng kết quả, không sửa check-in cũ. Vòng quay không yêu cầu giới tính.
 
 Khi đủ đội, ứng dụng xáo đội để gợi ý cặp đấu. Đội dư ghi **Chờ lượt**. Kết quả hoàn chỉnh tự lưu theo ngày; lượt quay đang dở chỉ tồn tại trên thiết bị hiện tại. **Bắt đầu lại** mở lượt mới, chỉ thay kết quả server khi lượt mới hoàn tất và lưu thành công. Danh sách đổi lúc animation sẽ hủy lượt đó; kết quả đã lưu cũng được đánh dấu cần chia lại khi danh sách thay đổi.

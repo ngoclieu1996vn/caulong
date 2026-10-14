@@ -24,8 +24,10 @@ export function createTeamGamesController({date,root}) {
   // Clip the rotating square canvas inside a disc; keep the pointer outside it.
   const disc=el('div','wheel-disc');disc.append(canvas);wheel.append(disc,pointer);
   const shuffleStage=el('div','shuffle-stage');shuffleStage.setAttribute('aria-hidden','true');
-  const winner=el('p','wheel-winner');winner.id='wheel-winner';winner.setAttribute('aria-live','polite');
+  const winner=el('div','wheel-winner');winner.id='wheel-winner';winner.setAttribute('aria-live','polite');
   const drawList=el('ol','draw-order');drawList.id='draw-order';drawList.setAttribute('aria-label','Thứ tự người đã quay');
+  const history=el('details','wheel-history');
+  history.append(el('summary',null,'Xem thứ tự quay'),drawList);
   const controls=el('div','panel-actions');
   const drawButton=button('Quay',draw,'button button-primary'),mixedButton=button('Chia đội',mix,'button button-primary');
   drawButton.addEventListener('keydown',event=>{
@@ -38,7 +40,7 @@ export function createTeamGamesController({date,root}) {
   const output=el('div','game-result');
   const loadNew=button('Tải kết quả mới',()=>{if(remote){apply(remote);remote=null;error='';render();drawWheel();}});loadNew.hidden=true;
   const retry=button('Kết nối lại trò chơi',()=>{stop();start();});retry.hidden=true;
-  panel.append(el('p','eyebrow','CHƠI VUI · CHIA ĐỘI'),heading,description,genderList,wheel,shuffleStage,winner,controls,drawList,output,loadNew,retry);
+  panel.append(el('p','eyebrow','CHƠI VUI · CHIA ĐỘI'),heading,description,genderList,wheel,shuffleStage,winner,controls,output,history,loadNew,retry);
   root.append(tools,panel,message);
 
   function open(nextMode) {
@@ -52,6 +54,7 @@ export function createTeamGamesController({date,root}) {
   function cancelAnimation(){++runToken;animation?.cancel();animation=undefined;animating=false;shuffleStage.classList.remove('is-shuffling');}
   function reset(markLocal=true) {
     cancelAnimation();session=null;order=[];result=null;local=markLocal;stale=false;error='';winner.textContent='';angle=0;
+    history.open=false;
     overrides=overrides.filter(o=>participants.some(p=>p.id===o.id&&p.version===o.version));
     render();drawWheel();
   }
@@ -62,6 +65,7 @@ export function createTeamGamesController({date,root}) {
     error='';
   }
   function refresh() {
+    updateWheelPresentation();
     const blocked=!peopleReady||!participants.length||busy||animating;
     wheelIcon.disabled=blocked;mixedIcon.disabled=blocked;
     drawButton.disabled=blocked||!loaded||stale||Boolean(result)||!remaining().length;
@@ -78,8 +82,17 @@ export function createTeamGamesController({date,root}) {
     message.textContent=text;message.classList.toggle('is-error',Boolean(error));
     root.dataset.state=stale?'stale':animating?'animating':busy?'saving':result?'completed':'idle';
   }
+  function updateWheelPresentation() {
+    const completed=mode==='wheel'&&Boolean(result);
+    wheel.hidden=mode!=='wheel'||completed;
+    drawButton.hidden=mode!=='wheel'||completed;
+    winner.hidden=mode!=='wheel'||completed||!order.length;
+    history.hidden=mode!=='wheel'||!order.length;
+    panel.classList.toggle('is-wheel-complete',completed);
+  }
   function renderGenders() {
     genderList.replaceChildren();
+    genderList.hidden=mode!=='mixed';
     if(mode!=='mixed')return;
     for(const person of participants){
       const row=el('div','game-gender-row');row.append(el('span',null,person.name));
@@ -97,33 +110,65 @@ export function createTeamGamesController({date,root}) {
       genderList.append(row);
     }
   }
+  function renderTeamCard(team,pending=false) {
+    const card=el('article',`game-team${pending?' is-awaiting':''}`);card.dataset.kind=pending?'pending':team.kind;
+    const kind=pending?'Chờ đồng đội':team.kind==='single'?'Đội đơn':team.kind==='mixed'?'Nam – Nữ':team.members.every(p=>p.gender)?'Cùng giới':'Đội đôi';
+    card.append(el('h4',null,`Đội ${team.id.split('-').at(-1)}`),el('span','team-kind',kind));
+    for(const person of team.members){
+      const row=el('div','team-person');
+      row.append(createAvatarButton(person.avatar,person.name,40),el('span',null,person.name));card.append(row);
+    }
+    if(pending){
+      const slot=el('div','team-person team-pending-slot'),mark=el('span','pending-avatar','?');
+      mark.setAttribute('aria-hidden','true');slot.append(mark,el('span',null,'Chờ lượt quay tiếp theo'));card.append(slot);
+    }
+    return card;
+  }
   function renderOutput() {
+    const focusResult=Boolean(result)&&document.activeElement===drawButton;
+    const people=session?.participants??result?.participants??participants;
     drawList.replaceChildren(...order.map((id,index)=>{
-      const person=(session?.participants??result?.participants??participants).find(p=>p.id===id);
+      const person=people.find(p=>p.id===id);
       const row=el('li',null,`Đội ${Math.floor(index/2)+1} · ${person?.name??id}`);row.dataset.personId=id;return row;
     }));
+    winner.replaceChildren();
+    const latest=people.find(p=>p.id===order.at(-1));
+    if(latest){
+      winner.dataset.personId=latest.id;
+      const info=el('div','wheel-winner-info');
+      info.append(el('span','winner-caption','VỪA ĐƯỢC CHỌN'),el('strong','winner-name',latest.name),
+        el('span','winner-team-note',`Đội ${Math.ceil(order.length/2)} · ${order.length%2&&!result?'Chờ đồng đội':order.length%2?'Đội riêng':'Đã đủ hai người'}`));
+      winner.append(createAvatarButton(latest.avatar,latest.name,72),info);
+    }else delete winner.dataset.personId;
+    updateWheelPresentation();
     output.replaceChildren();
-    if(!result)return;
+    if(!result && (mode!=='wheel'||!order.length))return;
     if(stale)output.append(el('p','stale-label','Kết quả cũ — cần chia lại theo danh sách hiện tại.'));
-    output.append(el('h3',null,'Các đội đã ghép'));
-    const teams=el('div','game-teams');
-    for(const team of result.teams){
-      const card=el('article','game-team');card.dataset.kind=team.kind;
-      const kind=team.kind==='single'?'Đội đơn':team.kind==='mixed'?'Nam – Nữ':team.members.every(p=>p.gender)?'Cùng giới':'Đội đôi';
-      card.append(el('h4',null,`Đội ${team.id.split('-').at(-1)}`),el('span','team-kind',kind));
-      for(const person of team.members){const row=el('div','team-person');row.append(createAvatarButton(person.avatar,person.name,40),el('span',null,person.name));card.append(row);}
-      teams.append(card);
+    if(result&&mode==='wheel'){
+      const summary=el('div','wheel-results-summary'),mark=el('span','results-mark','✓'),info=el('div');
+      mark.setAttribute('aria-hidden','true');
+      info.append(el('h3',null,'Kết quả vòng quay'),el('p',null,`${result.participants.length} người · ${result.teams.length} đội · ${result.matchups.length} cặp đấu`));
+      summary.append(mark,info);output.append(summary);
     }
-    output.append(teams,el('h3',null,'Cặp đấu gợi ý'));
+    output.append(el('h3',null,result?'Các đội đã ghép':'Đội đang ghép'));
+    const teams=el('div','game-teams');
+    const drawnTeams=result?.teams??teamsFromOrder(resolved().filter(p=>order.includes(p.id)),order);
+    for(const team of drawnTeams){
+      teams.append(renderTeamCard(team,!result&&team.members.length===1));
+    }
+    output.append(teams);
+    if(!result)return;
+    output.append(el('h3',null,'Cặp đấu gợi ý'));
     const label=id=>`Đội ${id.split('-').at(-1)}`;
     for(const match of result.matchups)output.append(el('p','game-match',`${label(match.teamIds[0])}  ×  ${label(match.teamIds[1])}`));
     for(const id of result.waitingTeamIds)output.append(el('p','game-waiting',`${label(id)} · Chờ lượt`));
+    if(focusResult){const title=output.querySelector('h3');title.tabIndex=-1;title.focus({preventScroll:true});}
   }
   function render() {
     heading.textContent=mode==='wheel'?'Vòng quay may mắn':'Chia đội ngẫu nhiên';
     description.textContent=mode==='wheel'?'Quay từng người, hai lượt liên tiếp thành một đội. Người lẻ vẫn có đội riêng.':
       'Ưu tiên nam – nữ tối đa. Người dư ghép cùng giới, người lẻ thành đội riêng.';
-    wheel.hidden=mode!=='wheel';shuffleStage.hidden=mode!=='mixed';drawButton.hidden=mode!=='wheel';mixedButton.hidden=mode!=='mixed';
+    shuffleStage.hidden=mode!=='mixed';mixedButton.hidden=mode!=='mixed';
     shuffleStage.replaceChildren(...participants.map((p,i)=>{const chip=el('span','shuffle-chip',p.name);chip.style.setProperty('--i',i);return chip;}));
     renderGenders();renderOutput();refresh();
   }
@@ -163,7 +208,7 @@ export function createTeamGamesController({date,root}) {
     try{
       await animate(wheelTargetAngle(angle,people.length,index),true);
       if(token!==runToken)return;
-      order.push(drawn.selected.id);winner.textContent=`Đã chọn: ${drawn.selected.name}`;winner.dataset.personId=drawn.selected.id;
+      order.push(drawn.selected.id);
       animating=false;
       if(order.length===session.participants.length){
         result=complete(teamsFromOrder(resolved(),order));renderOutput();await persist();

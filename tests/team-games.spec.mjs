@@ -26,6 +26,18 @@ test('wheel draws everyone once, saves teams and matchups, reload keeps complete
   for(let i=0;i<5;i++){
     await page.getByRole('button',{name:'Quay',exact:true}).click();
     await expect(page.locator('#draw-order li')).toHaveCount(i+1);
+    if(i<4){
+      await expect(page.locator('#wheel-winner .avatar-trigger')).toBeVisible();
+      await expect(page.locator('.game-team')).toHaveCount(Math.ceil((i+1)/2));
+      await expect(page.locator('.team-pending-slot')).toHaveCount((i+1)%2);
+      if(i===0){
+        await page.locator('#wheel-winner .avatar-trigger').click();
+        await expect(page.getByRole('dialog')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toBeHidden();
+        await page.locator('#games-panel').screenshot({path:'.playwright/wheel-progress.png'});
+      }
+    }
   }
   await expect(page.locator('#games-status')).toContainText('Đã lưu');
   const ids=await page.locator('#draw-order li').evaluateAll(nodes=>nodes.map(n=>n.dataset.personId));
@@ -33,10 +45,25 @@ test('wheel draws everyone once, saves teams and matchups, reload keeps complete
   await expect(page.locator('.game-team')).toHaveCount(3);
   await expect(page.locator('.game-match')).toHaveCount(1);
   await expect(page.locator('.game-waiting')).toHaveCount(1);
+  await expect(page.locator('.wheel-stage')).toBeHidden();
+  await expect(page.getByRole('button',{name:'Quay',exact:true})).toBeHidden();
+  await expect(page.locator('#draw-order')).toBeHidden();
+  await expect(page.locator('.wheel-results-summary')).toContainText('3 đội');
+  await page.getByText('Xem thứ tự quay', {exact:true}).click();
+  await expect(page.locator('#draw-order')).toBeVisible();
   await page.reload();
   await expect(page.locator('.game-team')).toHaveCount(3);
   await expect(page.locator('#games-status')).toContainText('Đã lưu');
-  await page.screenshot({path:'.playwright/games-desktop.png',fullPage:true});
+  await expect(page.locator('.wheel-stage')).toBeHidden();
+  await page.locator('#games-panel').screenshot({path:'.playwright/wheel-results-desktop.png'});
+  await page.setViewportSize({width:320,height:850});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.locator('#games-panel').screenshot({path:'.playwright/wheel-results-mobile.png'});
+  await page.getByRole('button',{name:'Bắt đầu lại'}).click();
+  await expect(page.locator('.wheel-stage')).toBeVisible();
+  await expect(page.locator('.game-team')).toHaveCount(0);
+  await expect(page.locator('#wheel-winner')).toBeHidden();
+  await expect(page.getByRole('button',{name:'Quay',exact:true})).toBeEnabled();
 });
 test('mixed animation makes maximal male-female teams and keeps same-gender leftovers',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});
