@@ -25,17 +25,24 @@ test('tabs show one panel, support keyboard/history and fit a phone',async({page
 });
 
 test('cancellation restores focus within the visible panel and does not steal it after switching tabs',async({page,context})=>{
+  await page.route('**/js/checkin-service.js',route=>route.fulfill({contentType:'text/javascript',body:`
+    export * from './checkin-service.js?actual';
+    import {cancelCheckin as cancel} from './checkin-service.js?actual';
+    export async function cancelCheckin(...args){if(window.deferCancel)await new Promise(resolve=>{window.finishCancel=resolve;});return cancel(...args);}
+  `}));
   const date='2026-12-30';
   await page.goto(`detail.html?date=${date}&emulator=1#list`);
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   const checkIn=()=>page.evaluate(async date=>(await import('./js/checkin-service.js')).checkInMember(date,'member_01'),date);
   await checkIn();await expect(page.locator('#attendee-count')).toHaveText('1');
-  await page.locator('.cancel-checkin').click();await page.locator('.cancel-password').fill('lieuvippro');await page.locator('.delete-confirm').click();
+  await page.locator('.cancel-checkin').click();await page.locator('.cancel-password').fill('test-only-password');await page.locator('.delete-confirm').click();
   await expect(page.locator('#attendee-count')).toHaveText('0');await expect(page.locator('#attendees-title')).toBeFocused();
   await checkIn();await expect(page.locator('#attendee-count')).toHaveText('1');
-  await page.locator('.cancel-checkin').click();await page.locator('.cancel-password').fill('lieuvippro');await context.setOffline(true);await page.locator('.delete-confirm').click();
+  await page.evaluate(()=>{window.deferCancel=true;});
+  await page.locator('.cancel-checkin').click();await page.locator('.cancel-password').fill('test-only-password');await page.locator('.delete-confirm').click();
+  await expect.poll(()=>page.evaluate(()=>typeof window.finishCancel)).toBe('function');
   const checkinTab=page.getByRole('tab',{name:'Check-in',exact:true});await checkinTab.click();
-  await context.setOffline(false);await expect(page.locator('#attendee-count')).toHaveText('0');
+  await page.evaluate(()=>window.finishCancel());await expect(page.locator('#attendee-count')).toHaveText('0');
   await expect(checkinTab).toBeFocused();
 });
 

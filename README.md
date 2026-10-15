@@ -67,7 +67,7 @@ Tên khách được trim, chuẩn hóa NFC, gom khoảng trắng; cần 2–60 
 
 ## Hủy check-in nhầm
 
-Trong tab **Danh sách**, bấm **Hủy check-in** cạnh người cần hủy. Nhập mật khẩu hủy trong vùng xác nhận ngay tại dòng đó, rồi nhấn **Xác nhận hủy** hoặc Enter; **Giữ lại** để bỏ qua. Nhập sai hoặc để trống không gửi yêu cầu xóa. Hỗ trợ cả thành viên và khách. Mật khẩu không lưu vào storage và được xóa khi đóng xác nhận, gửi yêu cầu hủy hoặc rời trang; lỗi mạng cần nhập lại để thử. Đây là khóa giao diện frontend, không phải xác thực phía server; quyền xóa trực tiếp vẫn do Firestore Rules quyết định.
+Trong tab **Danh sách**, bấm **Hủy check-in** cạnh người cần hủy. Nhập mật khẩu quản trị trong vùng xác nhận ngay tại dòng đó, rồi nhấn **Xác nhận hủy** hoặc Enter; **Giữ lại** để bỏ qua. Mật khẩu được băm MD5 và đối chiếu với cấu hình Firebase trước khi gửi yêu cầu xóa. Nhập sai, để trống hoặc không đọc được cấu hình sẽ không xóa. Hỗ trợ cả thành viên và khách. Mật khẩu không lưu vào storage và được xóa khi đóng xác nhận, gửi yêu cầu hủy hoặc rời trang; lỗi mạng cần nhập lại để thử. Đây là khóa giao diện frontend, không phải xác thực phía server; quyền xóa trực tiếp vẫn do Firestore Rules quyết định.
 
 Ứng dụng giữ nguyên dòng, số lượng và trạng thái đã check-in đến khi Firebase xác nhận xóa. Khi offline, yêu cầu hủy chờ kết nối; các nút gửi bị khóa. Nếu Firebase từ chối, dòng được giữ lại và có thể thử lại. Hủy thành công đồng bộ sang lịch và thiết bị khác, cho phép thành viên check-in lại.
 
@@ -79,13 +79,15 @@ Kiểm tra ngày và tên nằm ở JavaScript của ứng dụng. Firestore Rul
 
 Ai mở website cũng có thể đọc danh sách và check-in thay thành viên. Không thể chứng minh người bấm chính là chủ avatar, không chống spam khách tuyệt đối. Tối ưu query theo tháng không phải hạn chế quyền đọc; người biết cấu hình có thể đọc collection được public read. Không lưu thông tin nhạy cảm trong danh sách.
 
-Rules cho phép đọc/thêm mới/xóa `checkins`, chặn sửa check-in; cho phép đọc/tạo/sửa `billing` và `teamGames`, chặn xóa hai collection này. Các collection khác bị chặn. Không kiểm tra field, tên/ID hoặc timestamp trong Rules. Ai mở website cũng có thể sửa chi phí và kết quả trò chơi. Rules không giới hạn tổng số lượt ghi của một người.
+Rules cho phép đọc/thêm mới/xóa `checkins`, chặn sửa check-in; cho phép đọc/tạo/sửa `billing` và `teamGames`, chặn xóa hai collection này. Chỉ cho phép đọc trực tiếp document `settings/admin`, chặn liệt kê settings và mọi thao tác ghi settings từ website. Các collection khác bị chặn. Không kiểm tra field, tên/ID hoặc timestamp của dữ liệu buổi chơi trong Rules. Ai truy cập trực tiếp Firestore vẫn có thể sửa chi phí và kết quả trò chơi. Rules không giới hạn tổng số lượt ghi của một người.
 
 ## Tính tiền theo ngày
 
 Trang chi tiết chia thành ba tab: **Check-in** (thành viên và khách vãng lai), **Danh sách** (người đã check-in, hủy và tính tiền), **Trò chơi** (vòng quay và chia đội). Ngày và thông tin buổi chơi đã lưu hiển thị chung phía trên. Tab mặc định là Check-in; tab được chọn có nền xanh, hỗ trợ phím mũi tên/Home/End và nhớ qua phần `#checkin`, `#list`, `#games` trong URL khi tải lại hoặc dùng Back/Forward. Chuyển tab giữ input đang nhập và dữ liệu tiếp tục đồng bộ; lượt quay đang chạy không bị khởi động lại.
 
-Trên trang chi tiết, bấm **Tính tiền**, nhập Username và Password để mở modal chi phí. Tài khoản giao diện được cấu hình trong `js/billing-access.js` theo thông tin người dùng cung cấp. Sau khi đăng nhập thành công, username và password được lưu trong localStorage để tự điền lần sau; mỗi lần mở vẫn cần nhấn Đăng nhập. Nếu trình duyệt chặn storage, đăng nhập vẫn dùng được nhưng không nhớ tài khoản. Đây là khóa giao diện frontend, không phải Firebase Authentication: mật khẩu nằm trong mã nguồn công khai và có thể đọc từ localStorage, quyền Firestore vẫn do Rules quyết định.
+Trên trang chi tiết, bấm **Tính tiền**, chỉ nhập Password rồi nhấn **Xác nhận** để mở modal chi phí. Không còn ô username và không ghi cứng mật khẩu hay hash trong mã ứng dụng. Tính tiền và hủy check-in dùng chung document Firestore `settings/admin`, field `passwordMd5` là chuỗi MD5 gồm 32 ký tự hex. Mỗi lần xác nhận đọc lại trực tiếp từ server; thay đổi hash có hiệu lực ở lần xác nhận tiếp theo. Không có cấu hình, hash sai định dạng hoặc mất mạng thì không cho tiếp tục. Mật khẩu không được nhớ; dữ liệu username/password cũ ở key localStorage `caulong.billing.credentials` được xóa khi tải trang chi tiết mới.
+
+Khởi tạo hoặc đổi `settings/admin.passwordMd5` bằng tài khoản quản trị qua Firebase Console/IAM; chỉ lưu hash, không lưu mật khẩu gốc trong document. Website không được phép ghi document này. MD5 và đối chiếu ở frontend là cơ chế tiện dụng theo yêu cầu, không phải Firebase Authentication hoặc bảo vệ quyền ghi phía server; hash có thể đọc công khai. Thư viện MD5 trong `js/vendor/md5.js` được giữ nguyên từ uuid 8.3.2, kèm giấy phép MIT trong cùng thư mục.
 
 Modal có nút ×, đóng bằng Escape hoặc bấm nền bên ngoài; khi đóng/mở lại vẫn giữ input chưa lưu. Form cuộn bên trong, các nút Lưu/Tính tiền ở cuối modal luôn dễ truy cập trên điện thoại. Khi gửi, nút hiện vòng xoay và trạng thái Đang lưu/Đang tính tiền; khóa form và thao tác đóng modal trong lúc chờ để tránh gửi lặp. Thành công mới tự đóng modal; lỗi thì giữ dữ liệu và mở nút thử lại. Avatar trong modal vẫn mở ảnh lớn.
 
@@ -100,7 +102,7 @@ Tiền sân và phần cầu/trà được chia riêng bằng số nguyên; các
 - **Lưu** lưu chi phí và giờ chơi, chưa có số tiền phải trả.
 - **Tính tiền** lưu cả kết quả; danh sách check-in hiện tiền và giờ từng người sau xác nhận server.
 - Dưới ngày/tháng hiển thị thông tin đã lưu: tổng số cầu, số bình trà, số người, giờ chơi cùng tiền sân và tổng chi phí. Nếu giờ của mọi người khác nhau thì hiện khoảng giờ nhỏ nhất–lớn nhất. Input chưa lưu không thay đổi phần tóm tắt này. Ngày đã tính có nhãn **✓ Đã tính tiền** và nút **Tính tiền lại**; danh sách thay đổi sẽ yêu cầu tính lại.
-- Sửa input/giờ ẩn tiền cũ và báo chưa lưu. Thêm/hủy/check-in lại báo **Cần tính lại**. Mở lại ngày sẽ tải chi phí đã lưu; bấm Tính tiền và nhập tài khoản để xem/sửa trong modal.
+- Sửa input/giờ ẩn tiền cũ và báo chưa lưu. Thêm/hủy/check-in lại báo **Cần tính lại**. Mở lại ngày sẽ tải chi phí đã lưu; bấm Tính tiền và nhập mật khẩu để xem/sửa trong modal.
 - Nếu thiết bị khác sửa khi bạn đang nhập, form giữ nguyên; dùng **Tải bản mới** để nhận dữ liệu server. Lưu dùng revision transaction, từ chối ghi đè bản mới hơn.
 
 ## Vòng quay và chia đội

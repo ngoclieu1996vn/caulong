@@ -2,11 +2,13 @@ import { test, expect } from '@playwright/test';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { MEMBERS } from '../js/members.js';
+import {seedAdminPassword} from './admin-fixture.mjs';
 
 test.beforeAll(async () => {
   if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('Browser tests require the local Firestore Emulator.');
   const env = await initializeTestEnvironment({ projectId: 'demo-calendar-checkin', firestore: { host: '127.0.0.1', port: 8080 } });
   await env.clearFirestore();
+  await seedAdminPassword(env);
   await env.withSecurityRulesDisabled(async context => {
     const db = context.firestore();
     for (const [index, name] of [...MEMBERS.slice(0, 3).map(member => member.name), 'Khách thử nghiệm'].entries()) {
@@ -206,7 +208,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: '.playwright/cancel-mobile.png', fullPage: true });
-  await page.locator('.cancel-password').fill('lieuvippro');
+  await page.locator('.cancel-password').fill('test-only-password');
   await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
   await expect(page.locator('#attendee-count')).toHaveText('0');
   await expect(second.locator('#attendee-count')).toHaveText('0');
@@ -224,7 +226,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   const guest = page.locator('.attendee').filter({ hasText: 'Khách hủy nhầm' });
   await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await guest.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
-  await guest.locator('.cancel-password').fill('lieuvippro');
+  await guest.locator('.cancel-password').fill('test-only-password');
   await guest.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await expect(guest).toHaveCount(0);
@@ -233,7 +235,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   await second.close(); await calendar.close();
 });
 
-test('offline cancellation keeps the confirmed row and count until the server acknowledges deletion', async ({ page, context }) => {
+test('offline cancellation cannot verify the password and preserves the record until online retry', async ({ page, context }) => {
   await page.goto('detail.html?date=2026-10-21&emulator=1');
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   await page.evaluate(async () => (await import('./js/checkin-service.js')).checkInMember('2026-10-21', 'member_02'));
@@ -241,14 +243,15 @@ test('offline cancellation keeps the confirmed row and count until the server ac
   await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
   await context.setOffline(true);
-  await page.locator('.cancel-password').fill('lieuvippro');
+  await page.locator('.cancel-password').fill('test-only-password');
   await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
-  await expect(page.locator('#notice')).toContainText('chờ');
+  await expect(page.locator('#notice')).toContainText('ngoại tuyến');
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await expect(page.locator('.attendee')).toHaveCount(1);
   await expect(page.locator('[data-member-id="member_02"]')).toHaveClass(/is-checked/);
-  await expect(page.getByRole('button', { name: 'Đang hủy…', exact: true })).toBeDisabled();
+  await expect(page.locator('.delete-confirm')).toBeEnabled();
   await context.setOffline(false);
+  await page.locator('.cancel-password').fill('test-only-password');await page.locator('.delete-confirm').click();
   await expect(page.locator('#attendee-count')).toHaveText('0');
   await expect(page.locator('#notice')).toContainText('Đã hủy');
 });
@@ -256,7 +259,7 @@ test('offline cancellation keeps the confirmed row and count until the server ac
 test('rejected cancellation preserves the record and allows retry', async ({ page }) => {
   const env = await initializeTestEnvironment({ projectId: 'demo-calendar-checkin', firestore: {
     host: '127.0.0.1', port: 8080,
-    rules: 'rules_version = "2"; service cloud.firestore { match /databases/{database}/documents { match /checkins/{id} { allow read, create: if true; allow update, delete: if false; } } }',
+    rules: 'rules_version = "2"; service cloud.firestore { match /databases/{database}/documents { match /settings/admin { allow get: if true; } match /checkins/{id} { allow read, create: if true; allow update, delete: if false; } } }',
   } });
   try {
     await page.goto('detail.html?date=2026-10-22&emulator=1');
@@ -265,7 +268,7 @@ test('rejected cancellation preserves the record and allows retry', async ({ pag
     await expect(page.locator('#attendee-count')).toHaveText('1');
     await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
     await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
-    await page.locator('.cancel-password').fill('lieuvippro');
+    await page.locator('.cancel-password').fill('test-only-password');
     await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
     await expect(page.locator('#notice')).toHaveClass(/is-error/);
     await expect(page.locator('#notice')).toContainText('Firestore Rules');

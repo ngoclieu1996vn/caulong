@@ -2,7 +2,7 @@ import { before, after, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, deleteDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { MEMBERS } from '../js/members.js';
 
 let env;
@@ -14,6 +14,17 @@ before(async () => {
 beforeEach(() => env.clearFirestore());
 after(() => env?.cleanup());
 const database = () => env.unauthenticatedContext().firestore();
+
+test('admin password hash is readable but cannot be changed from the website',async()=>{
+  await env.withSecurityRulesDisabled(c=>setDoc(doc(c.firestore(),'settings/admin'),{passwordMd5:'900150983cd24fb0d6963f7d28e17f72'}));
+  const ref=doc(database(),'settings/admin');
+  await assertSucceeds(getDoc(ref));await assertFails(setDoc(ref,{passwordMd5:'changed'}));
+  await assertFails(updateDoc(ref,{passwordMd5:'changed'}));await assertFails(deleteDoc(ref));
+});
+test('password settings cannot be listed and other settings remain private',async()=>{
+  await assertFails(getDocs(collection(database(),'settings')));await assertFails(getDoc(doc(database(),'settings/other')));
+  await assertFails(setDoc(doc(database(),'settings/admin'),{passwordMd5:'new'}));
+});
 const member = (overrides = {}) => ({ date: '2026-10-14', memberId: MEMBERS[0].id, name: MEMBERS[0].name, type: 'member', checkedInAt: serverTimestamp(), ...overrides });
 const guest = (overrides = {}) => ({ date: '2026-10-14', memberId: null, name: 'Nguyễn Văn A', type: 'guest', checkedInAt: serverTimestamp(), ...overrides });
 

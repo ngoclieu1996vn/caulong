@@ -12,25 +12,15 @@ test.beforeAll(async()=>{
 });
 test.afterAll(()=>env?.cleanup());
 
-test('only successful credentials are remembered, including after reload and unavailable storage',async({page})=>{
+test('password is never remembered, and blocked storage does not prevent access',async({page})=>{
   await page.goto('detail.html?date=2026-12-27&emulator=1#list');
-  await page.locator('#billing-toggle').click();
-  await page.getByLabel('Username',{exact:true}).fill('admin');
-  await page.getByLabel('Password',{exact:true}).fill('wrong');
-  await page.getByLabel('Password',{exact:true}).press('Enter');
-  await expect(page.locator('#billing-login-error')).not.toBeEmpty();
-  await page.keyboard.press('Escape');await page.locator('#billing-toggle').click();
+  await openBilling(page);await page.keyboard.press('Escape');await page.reload();await page.locator('#billing-toggle').click();
+  await expect(page.getByLabel('Username',{exact:true})).toHaveCount(0);
   await expect(page.getByLabel('Password',{exact:true})).toHaveValue('');
-  await page.keyboard.press('Escape');await openBilling(page);
-  await page.keyboard.press('Escape');await page.reload();await page.locator('#billing-toggle').click();
-  await expect(page.getByLabel('Username',{exact:true})).toHaveValue('admin');
-  await expect(page.getByLabel('Password',{exact:true})).toHaveValue('lieuvippro');
-  await page.getByLabel('Password',{exact:true}).press('Enter');
-  await expect(page.locator('#billing-panel')).toBeVisible();
+  expect(await page.evaluate(()=>localStorage.getItem('caulong.billing.credentials'))).toBeNull();
   await page.keyboard.press('Escape');
-  await page.evaluate(()=>{Storage.prototype.getItem=Storage.prototype.setItem=()=>{throw new DOMException('Storage blocked','SecurityError');};});
-  await openBilling(page);
-  await expect(page.locator('#billing-panel')).toBeVisible();
+  await page.evaluate(()=>{Storage.prototype.getItem=Storage.prototype.setItem=Storage.prototype.removeItem=()=>{throw new DOMException('Storage blocked','SecurityError');};});
+  await openBilling(page);await expect(page.locator('#billing-panel')).toBeVisible();
 });
 
 for(const calculate of [false,true])test(`${calculate?'calculate':'save'} waits for confirmation, prevents repeats and closes with a persisted hero summary`,async({page})=>{

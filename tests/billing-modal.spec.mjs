@@ -4,14 +4,13 @@ test('billing requires credentials on each opening, closes with Escape and prese
   await page.goto('detail.html?date=2026-12-22&emulator=1#list');
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   await page.getByRole('button',{name:'Tính tiền',exact:true}).click();
-  await expect(page.getByRole('dialog',{name:'Đăng nhập tính tiền'})).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'Nhập mật khẩu tính tiền'})).toBeVisible();
   await expect(page.locator('#billing-panel')).toBeHidden();
-  await page.getByLabel('Username',{exact:true}).fill('admin');
   await page.getByLabel('Password',{exact:true}).fill('wrong');
-  await page.getByRole('button',{name:'Đăng nhập',exact:true}).click();
+  await page.getByRole('button',{name:'Xác nhận',exact:true}).click();
   await expect(page.locator('#billing-login-error')).not.toBeEmpty();
   await expect(page.locator('#billing-panel')).toBeHidden();
-  await page.getByLabel('Password',{exact:true}).fill('lieuvippro');
+  await page.getByLabel('Password',{exact:true}).fill('test-only-password');
   await page.getByLabel('Password',{exact:true}).press('Enter');
   await expect(page.getByRole('dialog',{name:'Tính tiền buổi cầu'})).toBeVisible();
   await expect(page.getByLabel('Tiền sân (đ)')).toHaveValue('220.000');
@@ -26,7 +25,7 @@ test('billing requires credentials on each opening, closes with Escape and prese
   await expect(page.getByLabel('Tiền sân (đ)')).toHaveValue('230.000');
   await closeBilling(page);
   await page.locator('#billing-toggle').click();
-  await expect(page.getByLabel('Password',{exact:true})).toHaveValue('lieuvippro');
+  await expect(page.getByLabel('Password',{exact:true})).toHaveValue('');
   await page.keyboard.press('Escape');
   await expect(page.locator('#billing-login')).toBeHidden();
 });

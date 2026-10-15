@@ -223,7 +223,7 @@ function renderAttendees() {
       label.append(password);confirmation.append(label,passwordError);
       const controls = element("div", "cancel-controls");
       const deleting = pending?.type === "delete" && pending.record.id === record.id;
-      const confirm = element("button", "button button-danger delete-confirm", deleting ? "Đang hủy…" : "Xác nhận hủy");
+      const confirm = element("button", "button button-danger delete-confirm", deleting ? pending.phase==='verifying'?"Đang xác nhận…":"Đang hủy…" : "Xác nhận hủy");
       confirm.type = "submit";
       confirm.disabled = !ready || Boolean(pending);
       confirmation.addEventListener('submit',event=>{event.preventDefault();submitCancellation(record);});
@@ -265,7 +265,7 @@ function subscribe() {
       records = result.records;
       // Firestore can emit a local removal before the delete promise is acknowledged.
       // Keep the confirmed row and member badge until that promise succeeds.
-      if (pending?.type === "delete" && !records.some(item => item.id === pending.record.id)) {
+      if (pending?.type === "delete" && pending.phase==='deleting' && !records.some(item => item.id === pending.record.id)) {
         records = [...records, pending.record].sort((a, b) => a.checkedInAt.toMillis() - b.checkedInAt.toMillis());
       }
       if (confirmDeleteId && !records.some(item => item.id === confirmDeleteId)) clearCancellation();
@@ -300,7 +300,7 @@ function subscribe() {
 function pendingNotice() {
   if (pending?.type === "delete") {
     notice(navigator.onLine
-      ? "Đang hủy check-in, chờ Firebase xác nhận…"
+      ? pending.phase==='verifying'?"Đang xác nhận mật khẩu…":"Đang hủy check-in, chờ Firebase xác nhận…"
       : "Bạn đang ngoại tuyến. Yêu cầu hủy đang chờ kết nối và xác nhận từ Firebase.");
     return;
   }
@@ -312,18 +312,24 @@ function pendingNotice() {
 }
 async function submitCancellation(record) {
   if (!ready || pending || confirmDeleteId !== record.id || !records.some(item => item.id === record.id)) return;
-  // UI convenience gate only; Firestore authorization remains in its Rules.
-  if(cancelPassword!=='lieuvippro'){
+  if(!cancelPassword){
     cancelPasswordError='Mật khẩu không đúng. Vui lòng nhập lại.';renderAttendees();
     focusRowAction(record.id,'.cancel-password');document.activeElement.select();return;
   }
-  cancelPassword='';cancelPasswordError='';
-  pending = { type: "delete", record };
+  const candidate=cancelPassword;cancelPassword='';cancelPasswordError='';
+  pending = { type: "delete", record,phase:'verifying' };
   updateCards();
   renderAttendees();
   pendingNotice();
   let succeeded = false;
   try {
+    if(!navigator.onLine)throw new Error('Bạn đang ngoại tuyến. Không thể xác nhận mật khẩu.');
+    const {verifyAdminPassword}=await import('./admin-password-service.js');
+    const valid=await verifyAdminPassword(candidate);
+    if(suspended)return;
+    if(confirmDeleteId!==record.id||!records.some(item=>item.id===record.id)){notice('Check-in này không còn trong danh sách.');return;}
+    if(!valid){cancelPasswordError='Mật khẩu không đúng. Vui lòng nhập lại.';return;}
+    pending.phase='deleting';renderAttendees();pendingNotice();
     await service.cancelCheckin(record.id);
     records = records.filter(item => item.id !== record.id);
     syncParticipants();
@@ -335,10 +341,11 @@ async function submitCancellation(record) {
     notice(service.checkinErrorMessage(error), true);
   } finally {
     pending = null;
+    if(cancelPasswordError)notice(cancelPasswordError,true);
     renderAttendees();
     updateCards();
     if (!$("#panel-list").hidden) {
-      if (!succeeded) focusRowAction(record.id, ".cancel-password");
+      if (!succeeded) {if(!focusRowAction(record.id, ".cancel-password"))focusAttendeesHeading();}
       else focusAttendeesHeading();
     }
   }

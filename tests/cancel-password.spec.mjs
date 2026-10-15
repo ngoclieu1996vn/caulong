@@ -16,7 +16,7 @@ test('cancellation password re-enables after a check-in finishes in another tab 
   await page.locator('[data-member-id="member_01"] .member-select').click();await page.locator('[data-member-id="member_01"] .checkin-button').click();
   await expect(page.locator('#attendee-count')).toHaveText('2');
   await page.getByRole('tab',{name:'Danh sách',exact:true}).click();
-  await expect(page.locator('.cancel-password')).toBeEnabled();await page.locator('.cancel-password').fill('lieuvippro');
+  await expect(page.locator('.cancel-password')).toBeEnabled();await page.locator('.cancel-password').fill('test-only-password');
 });
 
 test('cancellation requires the password, keeps it during realtime refresh and forgets it after closing',async({page,context})=>{
@@ -33,21 +33,21 @@ test('cancellation requires the password, keeps it during realtime refresh and f
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await password.fill('wrong');await password.press('Enter');await expect(page.locator('.cancel-password-error')).toBeVisible();
   await expect(page.locator('#attendee-count')).toHaveText('1');
-  await password.fill('lieuvippro');await page.locator('.delete-keep').click();
+  await password.fill('test-only-password');await page.locator('.delete-keep').click();
   await page.locator('.cancel-checkin').click();await expect(password).toHaveValue('');
-  await password.fill('lieuvippro');await password.press('Home');await password.press('ArrowRight');
+  await password.fill('test-only-password');await password.press('Home');await password.press('ArrowRight');
   const second=await context.newPage();await second.goto(`detail.html?date=${date}&emulator=1`);
   await expect(second.locator('#data-status')).toContainText('Đã đồng bộ');
   await second.evaluate(async date=>(await import('./js/checkin-service.js')).checkInGuest(date,'Khách đồng bộ','Nữ'),date);
   await expect(page.locator('#attendee-count')).toHaveText('2');
-  await expect(password).toHaveValue('lieuvippro');await expect(password).toBeFocused();
+  await expect(password).toHaveValue('test-only-password');await expect(password).toBeFocused();
   expect(await password.evaluate(input=>input.selectionStart)).toBe(1);
   await page.screenshot({path:'.playwright/cancel-password-mobile.png',fullPage:true});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await password.press('Enter');await expect(page.locator('#attendee-count')).toHaveText('1');
   await expect(second.locator('#attendee-count')).toHaveText('1');
   await page.locator('.cancel-checkin').click();await expect(password).toHaveValue('');
-  await password.fill('lieuvippro');await page.reload();await expect(password).toHaveCount(0);
+  await password.fill('test-only-password');await page.reload();await expect(password).toHaveCount(0);
   await page.locator('.cancel-checkin').click();await expect(password).toHaveValue('');
   await second.close();
 });
