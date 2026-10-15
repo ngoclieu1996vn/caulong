@@ -11,7 +11,7 @@ export const MEMBERS = [
     id: "member_02",
     name: "Tú Nguyễn",
     level: "Trung bình",
-    gender: "Nam",
+    gender: "Nữ",
     avatar: "./assets/avatars/tu.jpg",
   },
   {
