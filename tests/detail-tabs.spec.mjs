@@ -30,10 +30,10 @@ test('cancellation restores focus within the visible panel and does not steal it
   await expect(page.locator('#data-status')).toContainText('Đã đồng bộ');
   const checkIn=()=>page.evaluate(async date=>(await import('./js/checkin-service.js')).checkInMember(date,'member_01'),date);
   await checkIn();await expect(page.locator('#attendee-count')).toHaveText('1');
-  await page.locator('.cancel-checkin').click();await page.locator('.delete-confirm').click();
+  await page.locator('.cancel-checkin').click();await page.locator('.cancel-password').fill('lieuvippro');await page.locator('.delete-confirm').click();
   await expect(page.locator('#attendee-count')).toHaveText('0');await expect(page.locator('#attendees-title')).toBeFocused();
   await checkIn();await expect(page.locator('#attendee-count')).toHaveText('1');
-  await page.locator('.cancel-checkin').click();await context.setOffline(true);await page.locator('.delete-confirm').click();
+  await page.locator('.cancel-checkin').click();await page.locator('.cancel-password').fill('lieuvippro');await context.setOffline(true);await page.locator('.delete-confirm').click();
   const checkinTab=page.getByRole('tab',{name:'Check-in',exact:true});await checkinTab.click();
   await context.setOffline(false);await expect(page.locator('#attendee-count')).toHaveText('0');
   await expect(checkinTab).toBeFocused();

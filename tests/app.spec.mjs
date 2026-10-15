@@ -206,6 +206,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: '.playwright/cancel-mobile.png', fullPage: true });
+  await page.locator('.cancel-password').fill('lieuvippro');
   await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
   await expect(page.locator('#attendee-count')).toHaveText('0');
   await expect(second.locator('#attendee-count')).toHaveText('0');
@@ -223,6 +224,7 @@ test('inline cancellation keeps the record until confirmation, syncs tabs and pe
   const guest = page.locator('.attendee').filter({ hasText: 'Khách hủy nhầm' });
   await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await guest.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
+  await guest.locator('.cancel-password').fill('lieuvippro');
   await guest.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await expect(guest).toHaveCount(0);
@@ -239,6 +241,7 @@ test('offline cancellation keeps the confirmed row and count until the server ac
   await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
   await context.setOffline(true);
+  await page.locator('.cancel-password').fill('lieuvippro');
   await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
   await expect(page.locator('#notice')).toContainText('chờ');
   await expect(page.locator('#attendee-count')).toHaveText('1');
@@ -262,6 +265,7 @@ test('rejected cancellation preserves the record and allows retry', async ({ pag
     await expect(page.locator('#attendee-count')).toHaveText('1');
     await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
     await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
+    await page.locator('.cancel-password').fill('lieuvippro');
     await page.getByRole('button', { name: 'Xác nhận hủy', exact: true }).click();
     await expect(page.locator('#notice')).toHaveClass(/is-error/);
     await expect(page.locator('#notice')).toContainText('Firestore Rules');
@@ -281,13 +285,13 @@ test('inline confirmation keeps its focused action through realtime changes and 
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await page.getByRole('tab', { name: 'Danh sách', exact: true }).click();
   await page.getByRole('button', { name: 'Hủy check-in', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toBeFocused();
+  await expect(page.locator('.cancel-password')).toBeFocused();
   const second = await context.newPage();
   await second.goto('detail.html?date=2026-10-23&emulator=1');
   await expect(second.locator('#data-status')).toContainText('Đã đồng bộ');
   await second.evaluate(async () => (await import('./js/checkin-service.js')).checkInGuest('2026-10-23', 'Khách cập nhật', 'Nữ'));
   await expect(page.locator('#attendee-count')).toHaveText('2');
-  await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toBeFocused();
+  await expect(page.locator('.cancel-password')).toBeFocused();
   await second.evaluate(async () => (await import('./js/checkin-service.js')).cancelCheckin('2026-10-23_member_03'));
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await expect(page.getByRole('button', { name: 'Xác nhận hủy', exact: true })).toHaveCount(0);

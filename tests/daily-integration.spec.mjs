@@ -32,7 +32,7 @@ test('billing and games stay independent, roster changes invalidate both',async(
   await page.locator('#billing-panel').getByRole('button',{name:'Tính tiền',exact:true}).click();
   await expect(page.locator('.attendee-amount')).toHaveCount(2);
   await expect(page.locator('#billing-panel')).toBeHidden();
-  await page.locator('.cancel-checkin').first().click();await page.locator('.delete-confirm').click();
+  await page.locator('.cancel-checkin').first().click();await page.locator('.cancel-password').fill('lieuvippro');await page.locator('.delete-confirm').click();
   await expect(page.locator('#attendee-count')).toHaveText('1');
   await expect(page.locator('#billing-status')).toContainText('Cần tính lại');
   await expect(page.locator('#games-status')).toContainText('Danh sách đã thay đổi');
@@ -71,7 +71,7 @@ test('missing new Rules leaves check-in and cancellation available',async({page}
   await page.locator('[data-member-id="member_01"] .checkin-button').click();
   await expect(page.locator('#attendee-count')).toHaveText('3');
   await page.getByRole('tab',{name:'Danh sách',exact:true}).click();
-  await page.locator('.cancel-checkin').first().click();await page.locator('.delete-confirm').click();
+  await page.locator('.cancel-checkin').first().click();await page.locator('.cancel-password').fill('lieuvippro');await page.locator('.delete-confirm').click();
   await expect(page.locator('#attendee-count')).toHaveText('2');
 });
 test('normal wheel animation locks draws and its final sector agrees with winner',async({page})=>{

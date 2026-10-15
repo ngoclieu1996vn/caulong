@@ -27,6 +27,8 @@ let service,
   generation = 0;
 let records = [];
 let confirmDeleteId = null;
+let cancelPassword = '', cancelPasswordError = '';
+function clearCancellation(){confirmDeleteId=null;cancelPassword='';cancelPasswordError='';}
 const cards = new Map();
 let billing,games;
 let allocations=[];
@@ -133,7 +135,7 @@ function updateCards() {
   $("#guest-name").disabled = Boolean(pending);
   $('#guest-gender').disabled=Boolean(pending);
   $("#guest-toggle").disabled = Boolean(pending);
-  for (const button of document.querySelectorAll(".cancel-checkin, .delete-confirm, .delete-keep")) {
+  for (const button of document.querySelectorAll(".cancel-checkin, .delete-confirm, .delete-keep, .cancel-password")) {
     button.disabled = !ready || Boolean(pending);
   }
 }
@@ -153,12 +155,15 @@ function renderAttendees() {
   $("#date-count").textContent = `${records.length} người đã check-in`;
   const list = $("#attendee-list");
   const active = document.activeElement;
-  const actionClass = ["cancel-checkin", "delete-confirm", "delete-keep"].find(name => active?.classList.contains(name));
+  const actionClass = ["cancel-checkin", "delete-confirm", "delete-keep", "cancel-password"].find(name => active?.classList.contains(name));
   const focusedAction = list.contains(active) && actionClass
-    ? { id: active.closest(".attendee")?.dataset.checkinId, selector: `.${actionClass}` }
+    ? { id: active.closest(".attendee")?.dataset.checkinId, selector: `.${actionClass}`, start:active.selectionStart,end:active.selectionEnd }
     : null;
   const restoreActionFocus = () => {
-    if (focusedAction && !pending && !focusRowAction(focusedAction.id, focusedAction.selector)) focusAttendeesHeading();
+    if (focusedAction && !pending) {
+      if(!focusRowAction(focusedAction.id, focusedAction.selector))focusAttendeesHeading();
+      else if(focusedAction.selector==='.cancel-password')document.activeElement.setSelectionRange(focusedAction.start,focusedAction.end);
+    }
   };
   list.replaceChildren();
   if (!records.length) {
@@ -196,29 +201,38 @@ function renderAttendees() {
     remove.setAttribute("aria-expanded", String(confirmDeleteId === record.id));
     remove.addEventListener("click", () => {
       if (!ready || pending) return;
+      clearCancellation();
       confirmDeleteId = record.id;
       renderAttendees();
-      focusRowAction(record.id, ".delete-confirm");
+      focusRowAction(record.id, ".cancel-password");
     });
     actions.append(remove);
     row.append(avatar, info, time, actions);
     if (confirmDeleteId === record.id) {
-      const confirmation = element("div", "attendee-confirmation");
+      const confirmation = element("form", "attendee-confirmation");
+      confirmation.noValidate=true;
       confirmation.setAttribute("role", "group");
       confirmation.setAttribute("aria-label", `Hủy check-in của ${record.name}`);
       confirmation.append(element("p", "cancel-prompt", `Hủy check-in của ${record.name}?`));
+      const label=element('label','cancel-password-field','Mật khẩu hủy check-in'),password=element('input','cancel-password');
+      password.type='password';password.name='cancel-password';password.autocomplete='off';password.required=true;
+      password.value=cancelPassword;password.disabled=!ready||Boolean(pending);password.setAttribute('aria-describedby','cancel-password-error');
+      if(cancelPasswordError)password.setAttribute('aria-invalid','true');
+      const passwordError=element('p','field-error cancel-password-error',cancelPasswordError);passwordError.id='cancel-password-error';passwordError.setAttribute('role','alert');
+      password.addEventListener('input',()=>{cancelPassword=password.value;cancelPasswordError='';passwordError.textContent='';password.removeAttribute('aria-invalid');});
+      label.append(password);confirmation.append(label,passwordError);
       const controls = element("div", "cancel-controls");
       const deleting = pending?.type === "delete" && pending.record.id === record.id;
       const confirm = element("button", "button button-danger delete-confirm", deleting ? "Đang hủy…" : "Xác nhận hủy");
-      confirm.type = "button";
+      confirm.type = "submit";
       confirm.disabled = !ready || Boolean(pending);
-      confirm.addEventListener("click", () => submitCancellation(record));
+      confirmation.addEventListener('submit',event=>{event.preventDefault();submitCancellation(record);});
       const keep = element("button", "button button-light delete-keep", "Giữ lại");
       keep.type = "button";
       keep.disabled = !ready || Boolean(pending);
       keep.addEventListener("click", () => {
         if (pending) return;
-        confirmDeleteId = null;
+        clearCancellation();
         renderAttendees();
         focusRowAction(record.id, ".cancel-checkin");
       });
@@ -254,7 +268,7 @@ function subscribe() {
       if (pending?.type === "delete" && !records.some(item => item.id === pending.record.id)) {
         records = [...records, pending.record].sort((a, b) => a.checkedInAt.toMillis() - b.checkedInAt.toMillis());
       }
-      if (confirmDeleteId && !records.some(item => item.id === confirmDeleteId)) confirmDeleteId = null;
+      if (confirmDeleteId && !records.some(item => item.id === confirmDeleteId)) clearCancellation();
       // Cached empty data alone must never enable an initial check-in.
       if (!result.fromCache) ready = true;
       syncParticipants();
@@ -298,6 +312,12 @@ function pendingNotice() {
 }
 async function submitCancellation(record) {
   if (!ready || pending || confirmDeleteId !== record.id || !records.some(item => item.id === record.id)) return;
+  // UI convenience gate only; Firestore authorization remains in its Rules.
+  if(cancelPassword!=='lieuvippro'){
+    cancelPasswordError='Mật khẩu không đúng. Vui lòng nhập lại.';renderAttendees();
+    focusRowAction(record.id,'.cancel-password');document.activeElement.select();return;
+  }
+  cancelPassword='';cancelPasswordError='';
   pending = { type: "delete", record };
   updateCards();
   renderAttendees();
@@ -307,7 +327,7 @@ async function submitCancellation(record) {
     await service.cancelCheckin(record.id);
     records = records.filter(item => item.id !== record.id);
     syncParticipants();
-    confirmDeleteId = null;
+    clearCancellation();
     if (selectedId === record.memberId) selectedId = null;
     notice(`Đã hủy check-in của ${record.name}.`);
     succeeded = true;
@@ -318,7 +338,7 @@ async function submitCancellation(record) {
     renderAttendees();
     updateCards();
     if (!$("#panel-list").hidden) {
-      if (!succeeded) focusRowAction(record.id, ".delete-confirm");
+      if (!succeeded) focusRowAction(record.id, ".cancel-password");
       else focusAttendeesHeading();
     }
   }
@@ -413,6 +433,7 @@ async function boot() {
     service ? subscribe() : location.reload(),
   );
   window.addEventListener("pagehide", () => {
+    clearCancellation();renderAttendees();
     suspended = true;
     billing.stop();
     games.stop();

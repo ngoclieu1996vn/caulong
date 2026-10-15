@@ -779,6 +779,11 @@ h1 {
   background: #fbf2ee;
 }
 .cancel-prompt { font-size: 11px; line-height: 1.8; overflow-wrap: anywhere; }
+.cancel-password-field { display:flex; flex-direction:column; gap:6px; margin-top:10px; font-size:12px; color:#784a40; }
+.cancel-password { width:100%; min-width:0; max-width:320px; border:1px solid #ddc7bf; border-radius:8px; padding:10px 12px; font:inherit; font-size:16px; background:#fff; color:#244734; }
+.cancel-password[aria-invalid="true"] { border-color:#a13b32; }
+.cancel-password-error { margin:8px 0 0; }
+.cancel-password-error:empty { display:none; }
 .cancel-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .cancel-controls .button { font-size: 11px; min-height: 40px; }
 .button-danger { background: #a54938; color: white; }

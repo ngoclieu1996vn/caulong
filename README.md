@@ -67,7 +67,7 @@ Tên khách được trim, chuẩn hóa NFC, gom khoảng trắng; cần 2–60 
 
 ## Hủy check-in nhầm
 
-Trong danh sách đã check-in, bấm **Hủy check-in** cạnh người cần hủy. Một vùng xác nhận xuất hiện ngay tại dòng đó: **Xác nhận hủy** để xóa, **Giữ lại** để bỏ qua. Hỗ trợ cả thành viên và khách.
+Trong tab **Danh sách**, bấm **Hủy check-in** cạnh người cần hủy. Nhập mật khẩu hủy trong vùng xác nhận ngay tại dòng đó, rồi nhấn **Xác nhận hủy** hoặc Enter; **Giữ lại** để bỏ qua. Nhập sai hoặc để trống không gửi yêu cầu xóa. Hỗ trợ cả thành viên và khách. Mật khẩu không lưu vào storage và được xóa khi đóng xác nhận, gửi yêu cầu hủy hoặc rời trang; lỗi mạng cần nhập lại để thử. Đây là khóa giao diện frontend, không phải xác thực phía server; quyền xóa trực tiếp vẫn do Firestore Rules quyết định.
 
 Ứng dụng giữ nguyên dòng, số lượng và trạng thái đã check-in đến khi Firebase xác nhận xóa. Khi offline, yêu cầu hủy chờ kết nối; các nút gửi bị khóa. Nếu Firebase từ chối, dòng được giữ lại và có thể thử lại. Hủy thành công đồng bộ sang lịch và thiết bị khác, cho phép thành viên check-in lại.
 
