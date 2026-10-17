@@ -32,6 +32,11 @@ export function renderBillingSummary(root,saved){
     item.append(icon(kind),el('span',null,value));stats.append(item);
   }
   const money=el('p','day-summary-money');
-  money.append(el('span',null,`Tiền sân ${formatMoney(totals.courtTotal)}`),el('strong',null,`Tổng ${formatMoney(totals.total)}`));
+  money.append(el('span',null,`Tiền sân ${formatMoney(totals.courtTotal)}`),el('strong',null,`Tổng chi ${formatMoney(totals.total)}`));
+  if(saved.status==='calculated' && saved.result?.roundingUnit===1000){
+    const result=saved.result;
+    money.append(el('strong',null,`Tổng thu ${formatMoney(result.collectedTotal)}`),
+      el('span',null,`${result.roundingDifference<0?'Thiếu':'Dư'} do làm tròn ${formatMoney(Math.abs(result.roundingDifference))}`));
+  }
   root.append(stats,money);
 }

@@ -21,7 +21,7 @@
 .hours-actions .button { padding:7px; width:36px; min-height:36px; font-size:18px; }
 .cost-summary { padding:16px 20px; background:#edf3e9; border-radius:12px; margin:20px 0; font-size:14px; }
 .cost-summary>div { display:flex; justify-content:space-between; gap:10px; padding:5px 0; }
-.cost-summary>div:last-child { border-top:1px solid #cfddcc; margin-top:8px; padding-top:12px; font-size:17px; }
+.cost-summary>div.is-total { border-top:1px solid #cfddcc; margin-top:8px; padding-top:12px; font-size:17px; }
 .panel-actions { display:flex; flex-wrap:wrap; gap:10px; }
 .attendee-amount { color:#245c45; font-size:14px; font-weight:700; white-space:nowrap; }
 .attendee-hours { color:#65776d; font-size:11px; }

@@ -17,7 +17,7 @@ export function createBillingController({date,root,summaryRoot,onAllocationsChan
   titleGroup.append(el('p','eyebrow','CHI PHÍ BUỔI CẦU'),title);
   const close=button('×',()=>panel.close(),'modal-close');close.setAttribute('aria-label','Đóng tính tiền');close.autofocus=true;
   header.append(titleGroup,close);
-  const description=el('p','panel-note','Tiền sân chia theo giờ · Cầu và trà chia đều mọi người. Nhập tiền bằng đồng.');
+  const description=el('p','panel-note','Tiền sân chia theo giờ · Cầu và trà chia đều mọi người. Tổng mỗi người làm tròn đến 1.000đ: dưới 500đ xuống, từ 500đ lên.');
   const fields=el('fieldset','cost-fields');
   const costs=el('div','cost-inputs'),hours=el('div','hours-grid');
   const summary=el('div','cost-summary');summary.id='billing-summary';summary.setAttribute('aria-live','polite');
@@ -50,14 +50,21 @@ export function createBillingController({date,root,summaryRoot,onAllocationsChan
   }
   function refresh() {
     let totals;
-    try {totals=calculateTotals(input);summary.replaceChildren(...[
-      ['Sân',totals.courtTotal],[`Cầu (${totals.shuttleQuantity} quả)`,totals.shuttleTotal],['Trà',totals.teaTotal],['Tổng cộng',totals.total]
-    ].map(([label,amount])=>{const row=el('div');row.append(el('span',null,label),el('strong',null,formatMoney(amount)));return row;}));}
+    try {
+      totals=calculateTotals(input);
+      const rows=[['Sân',totals.courtTotal],[`Cầu (${totals.shuttleQuantity} quả)`,totals.shuttleTotal],['Trà',totals.teaTotal],['Tổng chi',totals.total,'is-total']];
+      if(peopleReady && participants.length){
+        const preview=calculateBill(input,participants);
+        rows.push(['Tổng thu sau làm tròn',preview.collectedTotal,'is-total'],
+          [preview.roundingDifference<0?'Thiếu do làm tròn':'Dư do làm tròn',Math.abs(preview.roundingDifference)]);
+      }
+      summary.replaceChildren(...rows.map(([label,amount,className])=>{const row=el('div',className);row.append(el('span',null,label),el('strong',null,formatMoney(amount)));return row;}));
+    }
     catch(e){summary.textContent=e.message;}
     const current=state();
     const text=error || (busy?(savingCalculation?'Đang tính tiền, chờ Firebase xác nhận…':'Đang lưu, chờ Firebase xác nhận…'):remote?'Dữ liệu đã được sửa từ thiết bị khác. Bạn có thể tải bản mới.':
       current==='loading'?'Đang tải chi phí…':current==='stale'?'Danh sách đã thay đổi — Cần tính lại.':current==='dirty'?'Có thay đổi chưa lưu.':
-      current==='calculated'?`Đã tính tiền · Tổng thu ${formatMoney(saved.result.total)}`:saved?'Đã lưu chi phí.':'Chưa có chi phí đã lưu.');
+      current==='calculated'?`Đã tính tiền · Tổng thu ${formatMoney(saved.result.collectedTotal ?? saved.result.total)}${saved.result.roundingUnit===1000?'':' · Bấm Tính tiền lại để làm tròn.'}`:saved?'Đã lưu chi phí.':'Chưa có chi phí đã lưu.');
     message.textContent=text;message.classList.toggle('is-error',Boolean(error));
     modalMessage.textContent=text;modalMessage.classList.toggle('is-error',Boolean(error));
     fields.disabled=busy;

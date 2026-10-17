@@ -97,7 +97,7 @@ Mỗi người check-in có avatar và giờ mặc định 2h; nút −/+ thay �
 
 `Tiền/người = tiền sân × giờ/người ÷ tổng giờ + (tiền cầu + trà) ÷ số người`
 
-Tiền sân và phần cầu/trà được chia riêng bằng số nguyên; các đồng dư phân theo phần dư giảm dần, cùng phần dư dùng ID check-in. Tổng tiền mọi người luôn bằng tổng chi. Người 0h vẫn chia đều cầu/trà. Phải có ít nhất một người để tính; tổng giờ phải lớn hơn 0 nếu tiền sân lớn hơn 0. Ví dụ tổng 319.000đ với giờ 2,2,1,1 cho các khoản 98.083đ, 98.083đ, 61.417đ, 61.417đ.
+Mỗi người trả: tiền sân × giờ cá nhân / tổng giờ + (tiền cầu + trà) / số người. Làm tròn **một lần từ tổng phần chia chính xác** đến 1.000đ: phần lẻ dưới 500đ xuống, từ 500đ lên. Người cùng số giờ trả bằng nhau. Tổng thu là tổng các khoản sau làm tròn; giao diện hiển thị riêng tổng chi và khoản dư/thiếu. Ví dụ 321.000đ chia 6 người cùng giờ: mỗi người 54.000đ, thu 324.000đ, dư 3.000đ. Người 0h vẫn chia đều cầu/trà. Phải có ít nhất một người để tính; tổng giờ phải lớn hơn 0 nếu có tiền sân. Kết quả cũ giữ nguyên cho đến khi bấm **Tính tiền lại**.
 
 - **Lưu** lưu chi phí và giờ chơi, chưa có số tiền phải trả.
 - **Tính tiền** lưu cả kết quả; danh sách check-in hiện tiền và giờ từng người sau xác nhận server.

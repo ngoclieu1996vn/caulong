@@ -54,8 +54,18 @@ export function calculateBill(input,participants) {
   if (totals.courtTotal>0 && !hours.some(Boolean)) throw new Error('Tổng giờ phải lớn hơn 0 khi có tiền sân.');
   const court=allocate(totals.courtTotal,participants,hours);
   const shared=allocate(totals.shuttleTotal+totals.teaTotal,participants,participants.map(()=>1));
-  return {...totals,allocations:participants.map((p,i)=>({id:p.id,version:p.version,halfHours:hours[i],
-    courtAmount:court[i],sharedAmount:shared[i],amount:court[i]+shared[i]}))};
+  // Round the exact combined share once, before assigning any integer remainders.
+  // BigInt preserves half-thousand ties even for large bills and fractional shares.
+  const totalHours=hours.reduce((sum,h)=>sum+BigInt(h),0n)||1n;
+  const count=BigInt(participants.length),denominator=totalHours*count;
+  const extras=BigInt(totals.shuttleTotal)+BigInt(totals.teaTotal);
+  const allocations=participants.map((p,i)=>{
+    const numerator=BigInt(totals.courtTotal)*BigInt(hours[i])*count+extras*totalHours;
+    const amount=safe(((numerator+500n*denominator)/(1000n*denominator))*1000n);
+    return {id:p.id,version:p.version,halfHours:hours[i],courtAmount:court[i],sharedAmount:shared[i],amount};
+  });
+  const collectedTotal=safe(allocations.reduce((sum,p)=>sum+BigInt(p.amount),0n));
+  return {...totals,roundingUnit:1000,collectedTotal,roundingDifference:collectedTotal-totals.total,allocations};
 }
 export function isBillingCurrent(document,participants) {
   return Boolean(document?.status==='calculated' && document.result && document.sourceFingerprint===rosterFingerprint(participants));

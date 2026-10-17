@@ -43,7 +43,10 @@ test('billing defaults, editable hours, draft and calculated result survive relo
   await page.locator('#billing-panel').getByRole('button',{name:'Tính tiền',exact:true}).click();
   await expect(page.locator('#billing-status')).toContainText('Đã tính');
   await expect(page.locator('.attendee-amount')).toHaveCount(4);
-  expect((await page.locator('.attendee-amount').allTextContents()).map(t=>t.replace(/\D/g,''))).toEqual(['98083','98083','61417','61417']);
+  expect((await page.locator('.attendee-amount').allTextContents()).map(t=>t.replace(/\D/g,''))).toEqual(['98000','98000','61000','61000']);
+  await expect(page.locator('#billing-status')).toContainText('318.000');
+  await expect(page.locator('#day-summary')).toContainText('Tổng chi 319.000');
+  await expect(page.locator('#day-summary')).toContainText('Thiếu do làm tròn 1.000');
   await page.reload();
   await expect(page.locator('.attendee-amount')).toHaveCount(4);
   await openBilling(page);
